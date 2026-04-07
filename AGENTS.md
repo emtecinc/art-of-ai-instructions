@@ -1,36 +1,41 @@
 # Agent Registry
 
-This file documents all agents in the system — their purpose, architecture placement, boundaries, and instruction dependencies.
+Reference documentation for all agents in the system — their purpose, boundaries, and instruction dependencies.
+
+> **This repo is instructions-only.** It does NOT contain or ship any agent files.
+> ALL agents live in consuming projects under `.github/agents/`.
+> This file serves as a reference registry so agents and humans can understand boundaries and dependencies.
 
 ---
 
-## Architecture: Centralized vs Local
+## Architecture
 
-| Agent | Centralized? | Location | Why |
-|---|---|---|---|
-| `AI-test-case-step-generator` | **Yes** | `agents/manual-test-step-generator.agent.md` | Text-only, no MCP/browser dependency |
-| `playwright-test-planner` | No | Consuming project `.github/agents/` | Requires MCP server + live browser |
-| `playwright-test-generator` | No | Consuming project `.github/agents/` | Requires MCP server + live browser |
-| `playwright-test-healer` | No | Consuming project `.github/agents/` | Requires MCP server + live browser |
+ALL agents are **local-only** — they live in `.github/agents/` in each consuming project.
+This centralized repo provides the instruction intelligence that agents follow, but owns zero agent definitions.
+
+| Agent | Location | Why Local |
+|---|---|---|
+| `playwright-test-planner` | `.github/agents/` | Requires MCP server + live browser |
+| `playwright-test-generator` | `.github/agents/` | Requires MCP server + live browser |
+| `playwright-test-healer` | `.github/agents/` | Requires MCP server + live browser |
+| `AI-test-case-step-generator` | `.github/agents/` | Maintained locally per project |
 
 ### Pipeline
 
 ```
 Planner ──(plan)──► Generator ──(code)──► Healer
-                                              │
-                         fixes code following same rules
 ```
 
-The **Manual Test Step Generator** is standalone — it does not participate in the Playwright pipeline.
+The **Manual Test Step Generator** (`AI-test-case-step-generator`) is standalone — it does not participate in the Playwright pipeline.
 
 ### How Local Agents Consume Centralized Instructions
 
-Local Playwright agents are **lightweight orchestrators**. They define:
+Local agents are **lightweight orchestrators**. They define:
 - Tool configuration (MCP server, browser tools)
 - Workflow sequence (what to do, in what order)
 - Execution-specific behavior (browser-first verification, save locations)
 
-**All framework rules, coding patterns, and architectural constraints live in centralized instruction files under `ai-instructions/instructions/`.** Local agents MUST:
+**All framework rules, coding patterns, and architectural constraints live in centralized instruction files** (when consumed under `.github/ai-instructions/instructions/`). Local agents MUST:
 
 1. Follow auto-loaded instruction rules without overriding them
 2. Use `.github/copilot-instructions.md` for project-specific context only
@@ -39,48 +44,9 @@ Local Playwright agents are **lightweight orchestrators**. They define:
 
 ---
 
-## Centralized Agent: AI-test-case-step-generator
+## Agent Reference — Boundaries and Dependencies
 
-**File:** `agents/manual-test-step-generator.agent.md`
-**Purpose:** Convert Playwright codegen output (recorded browser interactions) into structured, human-readable manual test cases.
-
-**Model:** Default
-**Tools:** `read`, `edit`, `search`
-
-> This agent is standalone. It does not participate in the Playwright pipeline.
-
-### MUST Do
-
-- Parse all `test(...)` blocks from codegen output
-- Convert each block into a structured manual test case (title, preconditions, steps table, test data, postconditions)
-- Derive element labels from `aria-label`, `placeholder`, `text`, or `id` — never expose raw selectors
-- Refer to dropdown options and radio buttons by visible label/text, never by index
-- Group consecutive `fill` calls on the same form into one step
-- Move hardcoded values to the Test Data section
-- Map `beforeEach` → Preconditions, `afterEach` → Postconditions
-- Keep each step atomic (one user action, ≤ 20 words, active voice)
-
-### MUST NOT Do
-
-- Write automation code
-- Suggest automation fixes
-- Include raw CSS/XPath selectors in steps
-- Reference elements by index position
-- Include non-user steps (`waitForTimeout`, `console.log`, config setup)
-
-### Instruction Dependencies
-
-None — this agent is self-contained.
-
-### Output
-
-Structured manual test cases in markdown table format.
-
----
-
-## Local Agents — Reference Documentation
-
-The following agents are LOCAL ONLY. They live in `.github/agents/` in each consuming project.
+All agents below are LOCAL ONLY. They live in `.github/agents/` in each consuming project.
 This section documents their boundaries and instruction dependencies for reference. The actual agent files are maintained locally.
 
 ---
@@ -105,7 +71,7 @@ This section documents their boundaries and instruction dependencies for referen
 
 | Dependency | Consuming Project Path | Why |
 |---|---|---|
-| `instructions/helper-utilities.instructions.md` | `ai-instructions/instructions/helper-utilities.instructions.md` | Identify available utilities for test implementation |
+| `instructions/helper-utilities.instructions.md` | `.github/ai-instructions/instructions/helper-utilities.instructions.md` | Identify available utilities for test implementation |
 | `copilot-instructions.md` (local) | `.github/copilot-instructions.md` | Project-specific app names, object list, org context |
 
 #### Output
@@ -126,12 +92,12 @@ Test plan saved to `specs/` — contains scenario titles, step-by-step user acti
 
 | Instruction File | Auto-Loads For | Consuming Project Path |
 |---|---|---|
-| `page-objects.instructions.md` | `pages/**/*.ts` | `ai-instructions/instructions/page-objects.instructions.md` |
-| `workflows.instructions.md` | `workflows/**/*.ts` | `ai-instructions/instructions/workflows.instructions.md` |
-| `spec-files.instructions.md` | `tests/**/*.spec.ts` | `ai-instructions/instructions/spec-files.instructions.md` |
-| `salesforce-stability.instructions.md` | `tests/**/*.ts` | `ai-instructions/instructions/salesforce-stability.instructions.md` |
-| `test-data.instructions.md` | `test-data/**` | `ai-instructions/instructions/test-data.instructions.md` |
-| `helper-utilities.instructions.md` | `tests/**/*.ts` | `ai-instructions/instructions/helper-utilities.instructions.md` |
+| `page-objects.instructions.md` | `pages/**/*.ts` | `.github/ai-instructions/instructions/page-objects.instructions.md` |
+| `workflows.instructions.md` | `workflows/**/*.ts` | `.github/ai-instructions/instructions/workflows.instructions.md` |
+| `spec-files.instructions.md` | `tests/**/*.spec.ts` | `.github/ai-instructions/instructions/spec-files.instructions.md` |
+| `salesforce-stability.instructions.md` | `tests/**/*.ts` | `.github/ai-instructions/instructions/salesforce-stability.instructions.md` |
+| `test-data.instructions.md` | `test-data/**` | `.github/ai-instructions/instructions/test-data.instructions.md` |
+| `helper-utilities.instructions.md` | `tests/**/*.ts` | `.github/ai-instructions/instructions/helper-utilities.instructions.md` |
 
 Plus `.github/copilot-instructions.md` (local) for project-specific context.
 
@@ -159,12 +125,30 @@ Generated files: page objects, workflows, spec files, CSV test data — only wha
 
 #### Instruction Dependencies
 
-Same as Generator — all centralized instruction files under `ai-instructions/instructions/` apply.
+Same as Generator — all centralized instruction files under `.github/ai-instructions/instructions/` apply.
 Plus `.github/copilot-instructions.md` (local) for project-specific context.
 
 #### Output
 
 Fixed test files that pass — preserving all framework rules.
+
+---
+
+### AI-test-case-step-generator
+
+**Purpose:** Convert Playwright codegen output (recorded browser interactions) into structured, human-readable manual test cases.
+
+**Tools:** `read`, `edit`, `search` (no MCP or browser dependency)
+
+> This agent is standalone. It does not participate in the Playwright pipeline.
+
+#### Instruction Dependencies
+
+None — this agent is self-contained.
+
+#### Output
+
+Structured manual test cases in markdown table format.
 
 ---
 
@@ -181,4 +165,4 @@ Fixed test files that pass — preserving all framework rules.
 | Produce manual test cases | — | — | — | **Yes** |
 | Use instruction files | Partial | **All** | **All** | None |
 | Require MCP + browser | **Yes** | **Yes** | **Yes** | — |
-| **Location** | **Local** | **Local** | **Local** | **Centralized** |
+| **Location** | **Local** | **Local** | **Local** | **Local** |

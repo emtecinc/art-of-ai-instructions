@@ -25,6 +25,24 @@ These rules apply to ALL TypeScript files under `tests/` and address real Salesf
 - After navigation/save, wait for spinner: `await page.locator('.slds-spinner').waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {})`
 - A record page is "ready" when header title + action buttons (Edit, Delete) are visible
 
+## Toast Transience (CRITICAL)
+
+Salesforce Lightning success toasts are **transient UI elements** that auto-dismiss after a few seconds.
+
+**Rules:**
+- Toast verification MUST happen **immediately** after the save/create action — delays risk the toast disappearing
+- Toast verification MUST be wrapped in `try/catch` — it is **best-effort**, not guaranteed
+- Toast verification failure MUST NOT block subsequent operations (record identity, cleanup registration)
+- Toast is an ephemeral confirmation signal, NOT a gate for downstream logic
+- This applies to ALL creation patterns: full-page, modal, inline, quick action, embedded/LWC
+
+**Implementation:** Toast verification lives in page object methods with internal try/catch that warns but does not throw. See `page-objects.instructions.md` for the authoritative pattern.
+
+**Cross-references:**
+- `page-objects.instructions.md` — `verifySuccessToast()` implementation pattern
+- `workflows.instructions.md` — toast step placement in creation flows
+- `spec-files.instructions.md` — cleanup registration MUST NOT depend on toast success
+
 ## Shadow DOM
 
 - Playwright auto-pierces Shadow DOM — use standard locator APIs
@@ -87,6 +105,7 @@ page.getByRole('row', { name: /Account Name/ });  // ✅ Never use nth-child
 | Click intercepted | Spinner covering target | Wait for spinner to be hidden before interacting |
 | Timeout on combobox | Dropdown closed by overlay | 3-attempt retry loop |
 | Partial text in input | `pressSequentially` + focus theft | Use `fill()` |
+| Toast not found / toast timeout | Toast auto-dismissed before assertion | Wrap in try/catch, treat as best-effort (see Toast Transience above) |
 
 ## Enterprise Execution
 

@@ -42,18 +42,46 @@ Spec calls: workflow.verifyEntityCreated(data)    ← high-level call
 - **Workflow:** delegates to page object verification methods via `this.step()` — never imports `expect`
 - **Page Object:** contains all `expect()` assertions — the ONLY layer that imports `expect`
 
-## Cleanup Registration — Dual Approach (CRITICAL)
+## Cleanup Registration — All Creation Patterns (CRITICAL)
 
-Every record created during a test MUST be registered for cleanup. The approach depends on **how the record was created**:
+Every record created during a test MUST be registered for cleanup. Cleanup registration is **non-negotiable** whenever a record was created and enough identity is available to register it.
+
+### Canonical Post-Creation Sequence in Specs
+
+After a workflow creates a record, the spec MUST follow this sequence:
+
+```
+1. Call workflow create method           (handles save + toast verification internally)
+2. Determine record identity             (using the correct pattern for the creation flow)
+3. Register cleanup                      (mandatory — MUST NOT depend on toast success)
+4. Call workflow verification methods     (assert the record was created correctly)
+```
+
+**Key rules:**
+- Cleanup registration MUST NOT depend on toast verification success — toast is best-effort
+- Cleanup registration MUST NOT assume URL redirect is the only identity pattern
+- Cleanup MUST happen before verification steps (so cleanup runs even if verification fails)
+
+### Record Identity Patterns
+
+| Creation Flow | Identity Source | Cleanup Registration |
+|---|---|---|
+| Full-page create (form → Save → redirect) | `page.url()` after redirect | `dataFactory.registerRecordFromUrl(page.url(), name)` |
+| Inline/related record (no redirect) | Unique field value (already known from test data) | `await dataFactory.getRecordIdByField(objectApiName, field, value)` |
+| Modal create (dialog → Save → close) | `page.url()` if redirected, else unique field query | Use whichever identity source is available |
+| Quick action / embedded / LWC | Unique field value or captured reference | `await dataFactory.getRecordIdByField(objectApiName, field, value)` |
 
 ### Decision Rule
 
-| Creation Type | UI Behavior After Save | Cleanup Approach |
-|---|---|---|
-| Primary record (form → Save) | Redirects to record detail page | **URL Extraction** — `dataFactory.registerRecordFromUrl(page.url(), name)` |
-| Inline/related record | Stays on current page (no redirect) | **Unique Value Lookup** — `dataFactory.getRecordIdByField(objectApiName, uniqueField, value)` |
+| After save... | Use |
+|---|---|
+| Page redirected to record detail URL | **URL Extraction** — `dataFactory.registerRecordFromUrl(page.url(), name)` |
+| Page did NOT redirect (inline, modal, quick action, embedded) | **Unique Value Lookup** — `await dataFactory.getRecordIdByField(objectApiName, field, value)` |
+| Record reference already captured in flow | Use the captured reference directly |
 
 - See `utility/sf-data-factory.md` for full API reference and usage patterns.
+- Never use both URL extraction and unique value lookup for the same record.
+- The workflow determines toast handling; the **spec** determines identity and cleanup — see `workflows.instructions.md`.
 
 ## Complete Spec Template
 
@@ -99,17 +127,20 @@ test.describe('Entity Creation - Scenario Name @smoke', () => {
       type: csvRow.type,
     };
 
-    // Act — single high-level workflow call handles all creation steps internally
+    // Act — workflow handles save + toast verification internally
     await test.step('Create entity', async () => {
       await workflow.createEntity(entityData);
     });
 
-    // Register cleanup — URL extraction (save redirected to record page)
+    // Cleanup — determine identity and register (mandatory, before verification)
     await test.step('Register cleanup', async () => {
+      // For redirect-based creation: extract from URL
       dataFactory.registerRecordFromUrl(page.url(), entityData.name);
+      // For non-redirect creation: query by unique field instead
+      // await dataFactory.getRecordIdByField('Entity__c', 'Name', entityData.name);
     });
 
-    // Assert — single high-level workflow call handles all verifications internally
+    // Assert — workflow handles all verifications internally
     await test.step('Verify entity created', async () => {
       await workflow.verifyEntityCreated(entityData);
     });
@@ -137,8 +168,11 @@ const TEST_DATA = {
 ## SFDataFactory Cleanup Rules
 
 - **Every record created during a test MUST be registered for cleanup** — no orphaned records
+- **Cleanup registration is non-negotiable** when a record was created and identity is available
+- **Cleanup MUST NOT depend on toast success** — toast is best-effort (see `salesforce-stability.instructions.md`)
+- **Redirect URL is only ONE identity pattern** — use the correct pattern for the creation flow (see table above)
 - **Redirected record** → `registerRecordFromUrl(page.url(), name)` — extract recordId from URL after save
-- **Inline record (no redirect)** → `getRecordIdByField(objectApiName, uniqueField, value)` — query by unique value
+- **Non-redirect record (inline, modal, quick action, embedded)** → `await getRecordIdByField(objectApiName, uniqueField, value)` — query by unique value
 - **Never use both approaches for the same record**
 - `teardown()` in `afterEach` — never inside the test body
 - **Parent-child cleanup**: register child records FIRST, then parent (teardown deletes in registration order)
@@ -148,7 +182,7 @@ const TEST_DATA = {
 // Redirected record — extract from URL after save
 dataFactory.registerRecordFromUrl(page.url(), entityData.name);
 
-// Inline record (no redirect) — query by unique value
+// Non-redirect record (inline, modal, quick action, embedded) — query by unique value
 await dataFactory.getRecordIdByField(childObjectApiName, childUniqueField, childValue);
 ```
 

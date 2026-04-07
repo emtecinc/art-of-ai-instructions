@@ -231,6 +231,12 @@ async fillAccountName(name: string): Promise<void> {
 
 ### Save/Create Methods Must Wait for Completion
 
+Save/create methods MUST handle the full post-save page-level sequence:
+1. Click the save/create button
+2. Wait for spinner to clear
+3. **Immediately** attempt toast verification (the toast disappears quickly)
+4. Toast verification MUST be wrapped in `try/catch` — failure to verify toast MUST NOT block subsequent operations
+
 ```typescript
 async clickSave(): Promise<void> {
   try {
@@ -241,7 +247,26 @@ async clickSave(): Promise<void> {
     throw error;
   }
 }
+
+async verifySuccessToast(expectedText?: string): Promise<void> {
+  try {
+    const toast = this['page'].locator('.toastMessage');
+    await expect(toast).toBeVisible({ timeout: 10000 });
+    if (expectedText) {
+      await expect(toast).toContainText(expectedText, { timeout: 5000 });
+    }
+  } catch {
+    console.warn('Toast verification failed — toast may have disappeared');
+    // Toast is transient — do NOT throw. See salesforce-stability.instructions.md.
+  }
+}
 ```
+
+**Key rules for save/create page methods:**
+- Toast verification is **best-effort** — it MUST NOT throw on failure
+- The `verifySuccessToast()` method MUST swallow exceptions (warn only)
+- This pattern applies to ALL creation flows: full-page, modal, inline, quick action, embedded/LWC
+- Workflows call `verifySuccessToast()` immediately after save — see `workflows.instructions.md`
 
 ## Verification Methods (Assertions Live HERE)
 
@@ -295,5 +320,6 @@ async selectComboboxOption(comboboxName: string, optionText: string): Promise<vo
 - Never use `waitForTimeout()` — see `salesforce-stability.instructions.md`
 - Never duplicate SF-Basepage actions in object pages
 - Never put object-specific logic in SF-Basepage
+- Never throw from toast verification methods — toast is transient and best-effort
 
 ```
