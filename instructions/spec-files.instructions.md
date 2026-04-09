@@ -79,7 +79,7 @@ After a workflow creates a record, the spec MUST follow this sequence:
 | Page did NOT redirect (inline, modal, quick action, embedded) | **Unique Value Lookup** — `await dataFactory.getRecordIdByField(objectApiName, field, value)` |
 | Record reference already captured in flow | Use the captured reference directly |
 
-- See `utility/sf-data-factory.md` for full API reference and usage patterns.
+- See `utilities/sf-data-factory.md` for full API reference and usage patterns.
 - Never use both URL extraction and unique value lookup for the same record.
 - The workflow determines toast handling; the **spec** determines identity and cleanup — see `workflows.instructions.md`.
 

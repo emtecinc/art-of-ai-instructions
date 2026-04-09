@@ -2,23 +2,22 @@
 
 Reference documentation for all agents in the system — their purpose, boundaries, and instruction dependencies.
 
-> **This repo is instructions-only.** It does NOT contain or ship any agent files.
-> ALL agents live in consuming projects under `.github/agents/`.
+> This repo ships **agents**, **instructions**, and **utilities**.
+> Downstream projects clone this repo and copy assets into `.github/agents/`, `.github/instructions/`, and `.github/utilities/`.
 > This file serves as a reference registry so agents and humans can understand boundaries and dependencies.
 
 ---
 
 ## Architecture
 
-ALL agents are **local-only** — they live in `.github/agents/` in each consuming project.
-This centralized repo provides the instruction intelligence that agents follow, but owns zero agent definitions.
+All agents are **centralized** in this repo under `agents/` and are copied to `.github/agents/` in each consuming project.
 
-| Agent | Location | Why Local |
+| Agent | Centralized Location | Consuming Project Location |
 |---|---|---|
-| `playwright-test-planner` | `.github/agents/` | Requires MCP server + live browser |
-| `playwright-test-generator` | `.github/agents/` | Requires MCP server + live browser |
-| `playwright-test-healer` | `.github/agents/` | Requires MCP server + live browser |
-| `AI-test-case-step-generator` | `.github/agents/` | Maintained locally per project |
+| `playwright-test-planner` | `agents/playwright-test-planner.agent.md` | `.github/agents/` |
+| `playwright-test-generator` | `agents/playwright-test-generator.agent.md` | `.github/agents/` |
+| `playwright-test-healer` | `agents/playwright-test-healer.agent.md` | `.github/agents/` |
+| `AI-test-case-step-generator` | `agents/manual-test-step-generator.agent.md` | `.github/agents/` |
 
 ### Pipeline
 
@@ -28,14 +27,14 @@ Planner ──(plan)──► Generator ──(code)──► Healer
 
 The **Manual Test Step Generator** (`AI-test-case-step-generator`) is standalone — it does not participate in the Playwright pipeline.
 
-### How Local Agents Consume Centralized Instructions
+### How Agents Consume Centralized Instructions
 
-Local agents are **lightweight orchestrators**. They define:
+Agents are **lightweight orchestrators**. They define:
 - Tool configuration (MCP server, browser tools)
 - Workflow sequence (what to do, in what order)
 - Execution-specific behavior (browser-first verification, save locations)
 
-**All framework rules, coding patterns, and architectural constraints live in centralized instruction files** (when consumed under `.github/ai-instructions/instructions/`). Local agents MUST:
+**All framework rules, coding patterns, and architectural constraints live in centralized instruction files** (consumed under `.github/instructions/`). Agents MUST:
 
 1. Follow auto-loaded instruction rules without overriding them
 2. Use `.github/copilot-instructions.md` for project-specific context only
@@ -46,8 +45,8 @@ Local agents are **lightweight orchestrators**. They define:
 
 ## Agent Reference — Boundaries and Dependencies
 
-All agents below are LOCAL ONLY. They live in `.github/agents/` in each consuming project.
-This section documents their boundaries and instruction dependencies for reference. The actual agent files are maintained locally.
+All agents below are centralized in this repo under `agents/`. They are copied to `.github/agents/` in each consuming project.
+This section documents their boundaries and instruction dependencies for reference.
 
 ---
 
@@ -71,7 +70,7 @@ This section documents their boundaries and instruction dependencies for referen
 
 | Dependency | Consuming Project Path | Why |
 |---|---|---|
-| `instructions/helper-utilities.instructions.md` | `.github/ai-instructions/instructions/helper-utilities.instructions.md` | Identify available utilities for test implementation |
+| `instructions/helper-utilities.instructions.md` | `.github/instructions/helper-utilities.instructions.md` | Identify available utilities for test implementation |
 | `copilot-instructions.md` (local) | `.github/copilot-instructions.md` | Project-specific app names, object list, org context |
 
 #### Output
@@ -92,12 +91,12 @@ Test plan saved to `specs/` — contains scenario titles, step-by-step user acti
 
 | Instruction File | Auto-Loads For | Consuming Project Path |
 |---|---|---|
-| `page-objects.instructions.md` | `pages/**/*.ts` | `.github/ai-instructions/instructions/page-objects.instructions.md` |
-| `workflows.instructions.md` | `workflows/**/*.ts` | `.github/ai-instructions/instructions/workflows.instructions.md` |
-| `spec-files.instructions.md` | `tests/**/*.spec.ts` | `.github/ai-instructions/instructions/spec-files.instructions.md` |
-| `salesforce-stability.instructions.md` | `tests/**/*.ts` | `.github/ai-instructions/instructions/salesforce-stability.instructions.md` |
-| `test-data.instructions.md` | `test-data/**` | `.github/ai-instructions/instructions/test-data.instructions.md` |
-| `helper-utilities.instructions.md` | `tests/**/*.ts` | `.github/ai-instructions/instructions/helper-utilities.instructions.md` |
+| `page-objects.instructions.md` | `pages/**/*.ts` | `.github/instructions/page-objects.instructions.md` |
+| `workflows.instructions.md` | `workflows/**/*.ts` | `.github/instructions/workflows.instructions.md` |
+| `spec-files.instructions.md` | `tests/**/*.spec.ts` | `.github/instructions/spec-files.instructions.md` |
+| `salesforce-stability.instructions.md` | `tests/**/*.ts` | `.github/instructions/salesforce-stability.instructions.md` |
+| `test-data.instructions.md` | `test-data/**` | `.github/instructions/test-data.instructions.md` |
+| `helper-utilities.instructions.md` | `tests/**/*.ts` | `.github/instructions/helper-utilities.instructions.md` |
 
 Plus `.github/copilot-instructions.md` (local) for project-specific context.
 
@@ -125,7 +124,7 @@ Generated files: page objects, workflows, spec files, CSV test data — only wha
 
 #### Instruction Dependencies
 
-Same as Generator — all centralized instruction files under `.github/ai-instructions/instructions/` apply.
+Same as Generator — all centralized instruction files under `.github/instructions/` apply.
 Plus `.github/copilot-instructions.md` (local) for project-specific context.
 
 #### Output
@@ -165,4 +164,4 @@ Structured manual test cases in markdown table format.
 | Produce manual test cases | — | — | — | **Yes** |
 | Use instruction files | Partial | **All** | **All** | None |
 | Require MCP + browser | **Yes** | **Yes** | **Yes** | — |
-| **Location** | **Local** | **Local** | **Local** | **Local** |
+| **Location** | **Centralized** | **Centralized** | **Centralized** | **Centralized** |
