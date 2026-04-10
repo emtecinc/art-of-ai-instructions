@@ -51,7 +51,7 @@ you edit files. Do not duplicate, weaken, or override them.
 | File | Auto-Loads For | Owns |
 |---|---|---|
 | `.github/instructions/page-objects.instructions.md` | `pages/**/*.ts` | ResilientLocator, LWC scoping, locator rules, combobox, assertions |
-| `.github/instructions/workflows.instructions.md` | `workflows/**/*.ts` | `this.step()`, scope boundaries, demand-driven imports |
+| `.github/instructions/workflows.instructions.md` | `workflows/**/*.ts` | `this.testStep()`, scope boundaries, demand-driven imports |
 | `.github/instructions/spec-files.instructions.md` | `tests/**/*.spec.ts` | Zero-locator rule, CSV data, cleanup, verification chain |
 | `.github/instructions/salesforce-stability.instructions.md` | `tests/**/*.ts` | Wait strategies, sync rules, common failure patterns |
 | `.github/instructions/test-data.instructions.md` | `test-data/**` | CSV structure and isolation rules |
@@ -83,6 +83,9 @@ When an instruction file auto-loads, follow its rules exactly. They take absolut
 3. Never introduce `waitForTimeout` — use web-first assertions only
 4. Never hardcode test data to fix data-related failures — fix the CSV or generator instead
 5. Always register records for cleanup after creation
+6. Verify `try/catch/finally` pattern for toast + cleanup in specs
+7. Verify `addLocatorHandler` with `{ noWaitAfter: true }` for duplicate detection + toast in `beforeEach`
+8. Verify `captureScreenshot()` in page object catch blocks
 
 ---
 
@@ -95,7 +98,9 @@ When an instruction file auto-loads, follow its rules exactly. They take absolut
 | Timeout / timing failure | No wait before interaction | Use `expect(locator).toBeVisible()` or wait for spinner hidden |
 | Combobox won't select | Dropdown closed by overlay between click and option | Apply 3-attempt retry loop (see `.github/instructions/page-objects.instructions.md`) |
 | Strict mode violation | Locator matches multiple elements | Add `exact: true`, `.filter({ hasText: /^text$/ })`, or parent scope |
+| Click intercepted | Toast/spinner covering target | `addLocatorHandler` in spec `beforeEach` + spinner wait |
 | Intermittent timeout | Long-running test, session expires | Apply session refresh middleware — see `.github/utilities/session-refresh-middleware.md` |
+| Cleanup skipped | Toast error breaks flow | Wrap toast + cleanup in `try/catch/finally` — cleanup in `finally` |
 
 ---
 

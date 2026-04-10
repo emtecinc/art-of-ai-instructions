@@ -10,8 +10,6 @@
 
 ## When NOT to Use
 - ❌ For non-Salesforce emails → use inbox provider directly
-- ❌ When only Salesforce sending needs verification → use `verifyWithSalesforce()`
-- ❌ When only inbox checking needed → use `verifyWithMailosaur()` or inbox provider directly
 
 ---
 
@@ -190,7 +188,8 @@ interface InboxEmail {
 - ✅ **Capture sentAfter just BEFORE triggering email** — avoids false matches
 - ✅ **Use relevant email addresses** — Ensure that sender's & recipient's address is correct and not random
 - ✅ **Increase retries for slow delivery** — email may take 10-30 seconds
-- ✅ **Verify sender/receiver, subject and content** — confirm correct email sent
+- ✅ **Verify sender/receiver, subject and content** — confirm correct email sent;
 - ❌ **Don't capture sentAfter after trigger** — may miss the email
+- ❌ **Never use verifyWithSalesforce and verifyWithMailosaur separately in the same test** — use `verify()` instead, unless subject differs between sent and received email
 
 ---

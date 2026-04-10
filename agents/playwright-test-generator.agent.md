@@ -61,7 +61,7 @@ Do not duplicate, weaken, or override them.
 | File | Auto-Loads For | Owns |
 |---|---|---|
 | `.github/instructions/page-objects.instructions.md` | `pages/**/*.ts` | Class structure, ResilientLocator, SF-Basepage reuse, locators, combobox, assertions |
-| `.github/instructions/workflows.instructions.md` | `workflows/**/*.ts` | Workflow class, `this.step()`, scope boundaries, data interfaces |
+| `.github/instructions/workflows.instructions.md` | `workflows/**/*.ts` | Workflow class, `this.testStep()`, scope boundaries, data interfaces |
 | `.github/instructions/spec-files.instructions.md` | `tests/**/*.spec.ts` | Zero-locator rule, CSV loading, cleanup registration, verification chain, timeouts |
 | `.github/instructions/salesforce-stability.instructions.md` | `tests/**/*.ts` | Wait strategies, Lightning SPA, stale elements, common failure patterns |
 | `.github/instructions/test-data.instructions.md` | `test-data/**` | CSV naming, directory structure, static vs dynamic data, isolation |
@@ -147,8 +147,67 @@ Generate only the files this test requires.
 
 ### Cleanup Compliance Reminder
 
-Every generated spec that creates records MUST include cleanup registration following
-`.github/instructions/spec-files.instructions.md`. Cleanup MUST NOT depend
-on toast verification success. See `.github/copilot-instructions.md` for the canonical spec sequence.
+Every generated spec that creates records MUST include:
+- `try/catch/finally` for toast verification + cleanup registration
+- `addLocatorHandler` for duplicate detection and toast overlay in `beforeEach`
+- Cleanup MUST NOT depend on toast verification success
+
+Follow `.github/instructions/spec-files.instructions.md` for the canonical patterns.
 
 ---
+
+## SCREENSHOT CAPTURE (CRITICAL)
+
+Use `captureScreenshot(page: Page, testInfo: TestInfo, name: string)` from `playwright-custom-core`'s BasePage. Do NOT reimplement.
+
+- **Page Object catch blocks:** Capture before rethrowing
+- **Critical steps:** Navigation, pre/post form submission, toast verification
+- Use descriptive file names for easy debugging
+
+---
+
+## ANTI-PATTERNS — ZERO TOLERANCE
+
+| Anti-Pattern | Correct Pattern |
+|---|---|
+| `resilientLocator.click()` | `resilientLocator.getLocator().click()` |
+| `waitForTimeout(2000)` | `expect(locator).toBeVisible()` |
+| Hardcoded data in spec | CSV + `TestDataGenerator` |
+| `expect()` in Workflow or Spec | `expect()` in Page Object only |
+| Locators in Spec | Locators only in Page Object |
+| `pressSequentially` | `fill()` |
+| Pre-creating all page files | Create only what the test needs |
+| Duplicating SF-Basepage methods | Check and reuse `sf-page.ts` |
+| Reusing another spec's CSV | Create dedicated CSV per spec |
+| `addLocatorHandler` without `noWaitAfter` | Always pass `{ noWaitAfter: true }` |
+| Cleanup outside try/finally | Wrap toast + cleanup in try/catch/finally |
+| Toast embedded in create method | Separate `verifySuccessToast()` workflow method |
+
+---
+
+## POST-GENERATION CHECKLIST
+
+**Page Object:**
+- [ ] Extends `BasePage`, has `pageName` and `relativeUrl`
+- [ ] Only created if test scenario needs it
+- [ ] SF-Basepage checked first for generic actions
+- [ ] All locators: `private` getters, `ResilientLocator`, 3 strategies
+- [ ] LWC `c-*` scoping applied where applicable
+- [ ] `exact: true` on ambiguous labels
+- [ ] `try/catch` with `captureScreenshot()` on all methods
+
+**Workflow:**
+- [ ] Extends `BaseWorkflow`, has `workflowName`
+- [ ] Imports only needed page objects
+- [ ] Every method uses `this.testStep()`
+- [ ] No locators, no `expect()`
+- [ ] Toast verification is separate from create method
+
+**Spec:**
+- [ ] Imports `test` only — NOT `expect`
+- [ ] CSV in `test-data/<object>/`
+- [ ] `try/catch/finally` for toast + cleanup
+- [ ] `addLocatorHandler` with `{ noWaitAfter: true }` in `beforeEach`
+- [ ] Tagged `@smoke` or `@regression`
+
+### MUST use browser tools to verify steps before writing files. Do NOT write code without browser verification.

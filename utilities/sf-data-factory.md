@@ -64,9 +64,18 @@ test.step('Register inline-created account for cleanup', async () => {
 });
 
 // Pattern 1.2: Use when Save redirects to the created record's detail page
-await test.step('Register cleanup', async () => {
-  // Extract recordId from URL — save redirected to record page
-  dataFactory.registerRecordFromUrl(page.url(), data.name);
+await test.step('Verify toast and register cleanup', async () => {
+  let toastError: unknown;
+  try {
+    await workflow.verifySuccessToast(data.name);
+  } catch (error) {
+    toastError = error;
+  } finally {
+    // Extract recordId from URL — save redirected to record page
+    dataFactory.registerRecordFromUrl(page.url(), data.name);
+  }
+
+  if (toastError) throw toastError;
 });
 ```
 
@@ -270,7 +279,7 @@ interface CompositeSubresponse {
 ## Critical Rules
 
 - ✅ **Only uniqueField must be unique** — all other fields stay static from CSV
-- ✅ **Register BEFORE assertions** — cleanup step comes immediately after save
+- ✅ **Register in try/catch/finally** — cleanup runs regardless of toast verification success
 - ✅ **Always use test.afterEach()** — never call `teardown()` inside test body
 - ✅ **Child-before-parent order** — register child first when creating related records
 - ✅ **Query via getRecordIdByField** — use for inline-created records with no URL redirect

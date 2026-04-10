@@ -58,7 +58,7 @@ import { SalesforcePage } from '../../pages/SF-Basepage/sf-page';
 this.sfPage = new SalesforcePage(page, url);
 ```
 
-Navigation methods (`navigateToBaseUrl`, `closeAllPrimaryTabs`, `navigateToAppViaAppLauncher`) are exposed as workflow methods that wrap `this.sfPage.*` calls inside `this.step()`.
+Navigation methods (`navigateToBaseUrl`, `closeAllPrimaryTabs`, `navigateToAppViaAppLauncher`) are exposed as workflow methods that wrap `this.sfPage.*` calls inside `this.testStep()`.
 
 **All navigation goes through SF-Basepage.** Do NOT duplicate app launcher/search/tab logic in workflows or object pages. See `page-objects.instructions.md` for SF-Basepage rules and interface.
 
@@ -72,46 +72,48 @@ Each unique business scenario gets its own Workflow class:
 
 Multiple workflows can use the SAME Page Object. Organized in `workflows/<object>/`.
 
-## Every Method Uses `this.step()`
+## Every Method Uses `this.testStep()`
 
 ```typescript
 async navigateToAccounts(): Promise<void> {
-  await this.step('Navigate to Accounts list page', async () => {
-    await this.listPage.navigate();
+  await this.testStep('Navigate to Accounts list page', async () => {
+     await this.sfPage.navigateToAppViaAppLauncher('Accounts');
+    //Capture screenshot after navigation step
+    this.sfPage.captureScreenshot(this['page'], 'workflows/accounts', 'navigate-to-accounts.png');
   });
 }
 ```
 
 ## High-Level Business Methods (CRITICAL)
 
-Workflows expose **high-level business methods** that the spec calls. Each method internally uses `this.step()` for granular actions. Specs MUST NOT call individual workflow steps like `clickNewButton()` or `fillField()`.
+Workflows expose **high-level business methods** that the spec calls. Each method internally uses `this.testStep()` for granular actions. Specs MUST NOT call individual workflow steps like `clickNewButton()` or `fillField()`.
 
 ```typescript
 // ✅ CORRECT — Workflow exposes high-level methods, spec calls them directly
 async createEntity(data: EntityData): Promise<void> {
-  await this.step('Navigate to Entities via App Launcher', async () => {
+  await this.testStep('Navigate to Entities via App Launcher', async () => {
     await this.sfPage.navigateToAppViaAppLauncher('Entities');
   });
 
-  await this.step('Click New button', async () => {
+  await this.testStep('Click New button', async () => {
     await this.listPage.clickNewButton();
   });
 
-  await this.step('Fill entity name', async () => {
+  await this.testStep('Fill entity name', async () => {
     await this.creationPage.fillEntityName(data.name);
   });
 
-  await this.step('Select entity type', async () => {
+  await this.testStep('Select entity type', async () => {
     await this.creationPage.selectType(data.type);
   });
 
-  await this.step('Click Save', async () => {
+  await this.testStep('Click Save', async () => {
     await this.creationPage.clickSave();
   });
 }
 
 async verifyEntityCreated(data: EntityData): Promise<void> {
-  await this.step('Verify entity name on detail page', async () => {
+  await this.testStep('Verify entity name on detail page', async () => {
     await this.detailPage.verifyEntityName(data.name);
   });
 }
@@ -124,55 +126,19 @@ async verifyEntityCreated(data: EntityData): Promise<void> {
 // In spec: await workflow.clickSave();
 ```
 
-**Separate Act vs Assert methods** — keep creation and verification as separate workflow methods so the spec can insert cleanup logic between them.
+**Separate Act vs Assert methods** — creation and verification MUST be separate workflow methods. The spec inserts cleanup between them.
 
-## Record Creation Flow — Mandatory Sequence (CRITICAL)
+## Toast Verification
 
-Whenever a workflow performs a create/save action that produces a new record, it MUST follow this sequence:
-
-### Required Post-Save Sequence
-
-```
-1. Perform save/create action        (page object clickSave)
-2. Verify success toast immediately   (page object verifySuccessToast — best-effort, try/catch)
-3. Return control to spec             (spec determines record identity + registers cleanup)
-```
-
-### Toast Verification in Workflows
-
-After calling a page object's save method, workflows MUST immediately call toast verification:
+Expose `verifySuccessToast()` as a **separate workflow method** — do NOT embed it inside create methods. The spec calls it in `try/catch/finally` with cleanup registration.
 
 ```typescript
-await this.step('Click Save', async () => {
-  await this.creationPage.clickSave();
-});
-
-await this.step('Verify success toast', async () => {
-  await this.creationPage.verifySuccessToast('was created');
-});
+async verifySuccessToast(expectedText: string): Promise<void> {
+  await this.testStep('Verify success toast', async () => {
+    await this.creationPage.verifySuccessToast(expectedText);
+  });
+}
 ```
-
-- Toast verification MUST happen inside the workflow — it is a UI interaction step
-- Toast verification is **best-effort** — it uses try/catch internally (see `page-objects.instructions.md`)
-- Toast failure MUST NOT prevent the workflow from completing
-
-### Record Identity — Multiple Patterns
-
-Record identity is NOT always determined by URL redirect. The workflow (or spec) MUST use the correct pattern based on how the record was created:
-
-| Creation Flow | How Record Identity Becomes Available | Who Determines It |
-|---|---|---|
-| Full-page create (form → Save) | URL redirects to record detail page | **Spec** — reads `page.url()` after workflow returns |
-| Modal create (dialog → Save) | Modal closes, may update parent page or URL | **Spec** — reads URL or queries by unique field |
-| Inline/related record create | Stays on current page, no redirect | **Spec** — queries by unique field value |
-| Quick action create | Quick action panel closes | **Spec** — queries by unique field value |
-| Embedded/LWC save | Component state updates | **Spec** — queries by unique field or component state |
-
-**Key rules:**
-- Workflows MUST NOT assume redirect is the only identity pattern
-- Workflows MUST separate save+toast from identity determination
-- The **spec** is responsible for determining record identity and registering cleanup (see `spec-files.instructions.md`)
-- Cleanup registration is mandatory whenever a record was created and identity is available
 
 ## Data Interfaces
 
@@ -192,6 +158,7 @@ export interface AccountData {
 |----------------|---------------------|
 | Call Page Object methods (including verification methods) | Contain locators or `page.locator()` |
 | Accept typed data from spec | Import `expect` from `@playwright/test` |
-| Use `this.step()` for logging | Contain `expect()` calls directly |
+| Use `this.testStep()` for logging | Contain `expect()` calls directly |
 | Define data interfaces | Directly access DOM elements |
+| Use multiple page objects | Embed toast verification inside create methods |
 ```

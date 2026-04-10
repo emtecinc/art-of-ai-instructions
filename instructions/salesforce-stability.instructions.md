@@ -25,23 +25,13 @@ These rules apply to ALL TypeScript files under `tests/` and address real Salesf
 - After navigation/save, wait for spinner: `await page.locator('.slds-spinner').waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {})`
 - A record page is "ready" when header title + action buttons (Edit, Delete) are visible
 
-## Toast Transience (CRITICAL)
+## Toast Handling
 
-Salesforce Lightning success toasts are **transient UI elements** that auto-dismiss after a few seconds.
-
-**Rules:**
-- Toast verification MUST happen **immediately** after the save/create action — delays risk the toast disappearing
-- Toast verification MUST be wrapped in `try/catch` — it is **best-effort**, not guaranteed
-- Toast verification failure MUST NOT block subsequent operations (record identity, cleanup registration)
-- Toast is an ephemeral confirmation signal, NOT a gate for downstream logic
-- This applies to ALL creation patterns: full-page, modal, inline, quick action, embedded/LWC
-
-**Implementation:** Toast verification lives in page object methods with internal try/catch that warns but does not throw. See `page-objects.instructions.md` for the authoritative pattern.
-
-**Cross-references:**
-- `page-objects.instructions.md` — `verifySuccessToast()` implementation pattern
-- `workflows.instructions.md` — toast step placement in creation flows
-- `spec-files.instructions.md` — cleanup registration MUST NOT depend on toast success
+Toast messages are transient — they auto-dismiss after a few seconds. Toast verification is best-effort:
+- `verifySuccessToast()` in page objects wraps assertion in `try/catch` (warn only, never throw)
+- Spec calls `workflow.verifySuccessToast()` in `try/catch/finally` with cleanup in `finally`
+- Toast overlay blocking is handled by `addLocatorHandler` in spec `beforeEach`
+- See `page-objects.instructions.md` and `spec-files.instructions.md` for patterns
 
 ## Shadow DOM
 
@@ -64,10 +54,13 @@ Salesforce Lightning success toasts are **transient UI elements** that auto-dism
 - `scrollIntoViewIfNeeded()` before clicking off-screen elements
 - Ensure spinners are gone before interacting
 - Use `.click({ force: true })` only as documented last resort
+- **Duplicate detection + toast overlay** handlers MUST be registered via `addLocatorHandler` in spec `beforeEach` — see `spec-files.instructions.md`
 
 ## Combobox Interactions
 
 Combobox selection uses a 3-attempt retry pattern with text/label-based selection (never index). The authoritative rules and code pattern are in `page-objects.instructions.md` — follow them exactly.
+
+**Always select by visible text/label — never by index.** Applies to comboboxes, picklists, radio buttons, and any multi-option component on both parent and child/related forms.
 
 ## URL Assertions
 
@@ -102,10 +95,10 @@ page.getByRole('row', { name: /Account Name/ });  // ✅ Never use nth-child
 |---------|-----------|-----|
 | `element not attached to DOM` | Cached locator after refresh | Use getter properties |
 | Strict mode violation | Unscoped locator / multiple matches | Scope to dialog/component, `exact: true` |
-| Click intercepted | Spinner covering target | Wait for spinner to be hidden before interacting |
+| Click intercepted | Toast/spinner covering target | `addLocatorHandler` in spec `beforeEach` (MANDATORY) + spinner wait |
 | Timeout on combobox | Dropdown closed by overlay | 3-attempt retry loop |
 | Partial text in input | `pressSequentially` + focus theft | Use `fill()` |
-| Toast not found / toast timeout | Toast auto-dismissed before assertion | Wrap in try/catch, treat as best-effort (see Toast Transience above) |
+| Toast not found / toast timeout | Toast auto-dismissed before assertion | `try/catch/finally` in spec, best-effort verification (see `spec-files.instructions.md`) |
 
 ## Enterprise Execution
 
