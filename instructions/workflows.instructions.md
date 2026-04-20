@@ -13,7 +13,7 @@ Every Workflow MUST:
 - Instantiate **only the page objects needed** for the specific scenario
 
 ```typescript
-import { Page } from '@playwright/test';
+import { Page, test } from '@playwright/test';
 import { BaseWorkflow } from 'playwright-custom-core';
 import { OpportunityListPage } from '../../pages/opportunities/opportunity-list-page';
 import { OpportunityCreationPage } from '../../pages/opportunities/opportunity-creation-page';
@@ -30,6 +30,10 @@ export class CreateOpportunityWorkflow extends BaseWorkflow {
     this.listPage = new OpportunityListPage(page, url);
     this.creationPage = new OpportunityCreationPage(page, url);
   }
+
+  protected override async testStep(description: string, action: () => Promise<void>): Promise<void> {
+    await test.step(`${this.workflowName}: ${description}`, action);
+  }
 }
 ```
 
@@ -38,11 +42,11 @@ export class CreateOpportunityWorkflow extends BaseWorkflow {
 Import and instantiate **only the page objects needed** for the workflow's scenario. Don't import all pages for an object.
 
 ```typescript
-// ✅ Only uses list + creation pages
+// ✅ VALID — Only uses list + creation pages
 import { OpportunityListPage } from '../../pages/opportunities/opportunity-list-page';
 import { OpportunityCreationPage } from '../../pages/opportunities/opportunity-creation-page';
 
-// ❌ Imports pages not used in this workflow
+// ❌ INVALID — Imports pages not used in this workflow
 import { OpportunityDetailPage } from '...';
 import { OpportunityRelatedPage } from '...';
 ```
@@ -78,8 +82,8 @@ Multiple workflows can use the SAME Page Object. Organized in `workflows/<object
 async navigateToAccounts(): Promise<void> {
   await this.testStep('Navigate to Accounts list page', async () => {
      await this.sfPage.navigateToAppViaAppLauncher('Accounts');
-    //Capture screenshot after navigation step
-    this.sfPage.captureScreenshot(this['page'], 'workflows/accounts', 'navigate-to-accounts.png');
+    // Capture screenshot after navigation — critical step
+    await this.sfPage.captureScreenshot(this['page'], test.info(), 'navigate-to-accounts.png');
   });
 }
 ```
@@ -93,6 +97,7 @@ Workflows expose **high-level business methods** that the spec calls. Each metho
 async createEntity(data: EntityData): Promise<void> {
   await this.testStep('Navigate to Entities via App Launcher', async () => {
     await this.sfPage.navigateToAppViaAppLauncher('Entities');
+    await this.sfPage.captureScreenshot(this['page'], test.info(), 'navigate-to-entities.png');
   });
 
   await this.testStep('Click New button', async () => {
@@ -109,12 +114,14 @@ async createEntity(data: EntityData): Promise<void> {
 
   await this.testStep('Click Save', async () => {
     await this.creationPage.clickSave();
+    await this.sfPage.captureScreenshot(this['page'], test.info(), 'click-saved-entity.png');
   });
 }
 
 async verifyEntityCreated(data: EntityData): Promise<void> {
   await this.testStep('Verify entity name on detail page', async () => {
     await this.detailPage.verifyEntityName(data.name);
+    await this.sfPage.captureScreenshot(this['page'], test.info(), 'verify-entity-created.png');
   });
 }
 ```
@@ -136,6 +143,7 @@ Expose `verifySuccessToast()` as a **separate workflow method** — do NOT embed
 async verifySuccessToast(expectedText: string): Promise<void> {
   await this.testStep('Verify success toast', async () => {
     await this.creationPage.verifySuccessToast(expectedText);
+    await this.sfPage.captureScreenshot(this['page'], test.info(), 'verify-success-toast.png');
   });
 }
 ```
@@ -154,7 +162,7 @@ export interface AccountData {
 
 ## Strict Boundaries
 
-| ✅ Workflow CAN | ❌ Workflow MUST NOT |
+| ✅ Workflow MUST ALWAYS | ❌ Workflow MUST NEVER |
 |----------------|---------------------|
 | Call Page Object methods (including verification methods) | Contain locators or `page.locator()` |
 | Accept typed data from spec | Import `expect` from `@playwright/test` |

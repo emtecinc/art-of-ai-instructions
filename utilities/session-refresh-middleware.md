@@ -39,10 +39,9 @@ sessionRefresh.register(page);
 2. **Track last valid URL** → stores last known Salesforce page URL
 3. **Detect expiry** → if redirected to `/visualforce/session` → session expired
 4. **Acquire lock** → file-based mutex on `.auth/salesforce.json` (cross-worker safe)
-5. **Check freshness** → if another worker already refreshed → reload cookies from file
-6. **Refresh if needed** → reset connection → JWT exchange → navigate to frontdoor.jsp → save new session
-7. **Navigate back** → return to last valid URL
-8. **Release lock** → allow other workers to proceed
+5. **Refresh if needed** → reset connection → JWT exchange → navigate to frontdoor.jsp → save new session
+6. **Navigate back** → return to last valid URL
+7. **Release lock** → allow other workers to proceed
 
 ---
 

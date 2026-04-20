@@ -110,34 +110,29 @@ test('should create account via API', async () => {
 ### Pattern 3: Composite API — Parent + Child
 ```typescript
 test('should create account and contacts via Composite API', async () => {
-  const accountName = TestDataGenerator.uniqueName('CompositeAccount');
-  const contact1Name = TestDataGenerator.uniqueName('Contact1');
-  const contact2Name = TestDataGenerator.uniqueName('Contact2');
+  accountPayload = PayloadBuilder...
+  contact1Payload = PayloadBuilder...
+  contact2Payload = PayloadBuilder...
+  // AccountId will be set via cross-reference in subrequest body
 
   const results = await dataFactory.executeCompositeRequest([
     {
       method: 'POST',
       url: '/services/data/v65.0/sobjects/Account',
       referenceId: 'refAccount',
-      body: { Name: accountName, Type: 'Customer' },
+      body: accountPayload,
     },
     {
       method: 'POST',
       url: '/services/data/v65.0/sobjects/Contact',
       referenceId: 'refContact1',
-      body: { 
-        LastName: contact1Name, 
-        AccountId: '@{refAccount.id}' // Cross-reference parent
-      },
+      body: contact1Payload,
     },
     {
       method: 'POST',
       url: '/services/data/v65.0/sobjects/Contact',
       referenceId: 'refContact2',
-      body: { 
-        LastName: contact2Name, 
-        AccountId: '@{refAccount.id}' 
-      },
+      body: contact2Payload,
     },
   ]);
 
@@ -279,13 +274,13 @@ interface CompositeSubresponse {
 ## Critical Rules
 
 - ✅ **Only uniqueField must be unique** — all other fields stay static from CSV
-- ✅ **Register in try/catch/finally** — cleanup runs regardless of toast verification success
+- ✅ **Register BEFORE assertions** — cleanup step comes immediately after save
 - ✅ **Always use test.afterEach()** — never call `teardown()` inside test body
 - ✅ **Child-before-parent order** — register child first when creating related records
-- ✅ **Query via getRecordIdByField** — use for inline-created records with no URL redirect
-- ✅ **Use PayloadBuilder for API creation** — structured, type-safe payloads
-- ✅ **Composite API for batch operations** — up to 25 operations in one call
-- ✅ **Use UI or API approach depending on scenario** — select appropriate pattern based on scenario or instructions
+- ✅ **Query via getRecordIdByField** — never extract ID from toast message or URL
+- ✅ **ALWAYS use PayloadBuilder for API creation** — structured, type-safe payloads
+- ✅ **ALWAYS use `executeCompositeRequest()` for more than 1 read/write requests** — avoid using `fetchRecord`, `deleteRecord`, `updateRecord` and `createRecord` for multiple API calls unless necessary. Leverage references between subrequests for parent-child relationships and to ensure atomicity when needed.
+- ✅ **API methods should be called in workflow** — ensure API methods are invoked within the appropriate test workflow
 - ❌ **Never register during impersonation** — call `ImpersonationHelper.logBack()` first
 - ❌ **Don't exceed 25 subrequests** — Composite API limit
 

@@ -1,10 +1,10 @@
 ---
-applyTo: "tests/**/*.ts"
+applyTo: "tests/**/*.ts, pages/**/*.ts, workflows/**/*.ts"
 ---
 
 # Salesforce Lightning UI — Stability & Synchronization Rules
 
-These rules apply to ALL TypeScript files under `tests/` and address real Salesforce production failures.
+ENFORCE these rules STRICTLY across all TypeScript files under `tests/`, `pages/`, and `workflows/` to address real Salesforce production failures.
 
 ---
 
@@ -103,9 +103,7 @@ page.getByRole('row', { name: /Account Name/ });  // ✅ Never use nth-child
 ## Enterprise Execution
 
 - Support `DEV`, `QA`, `UAT` via `process.env.BASE_URL`
-- Tags: `@smoke`, `@regression`, `@sanity`
+- Tags MUST follow the EXACT format defined in `spec-files.instructions.md` — Jira key first, then test type tags, declared only inside `test()` as an array
 - Max 1 retry for infrastructure blips
 - Never commit credentials — use env vars
 - Config: `screenshot: 'only-on-failure'`, `video: 'retain-on-failure'`, `trace: 'retain-on-failure'`
-
-```

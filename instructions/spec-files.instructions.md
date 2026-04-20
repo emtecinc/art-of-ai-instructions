@@ -19,7 +19,7 @@ import { CreateEntityWorkflow } from '../../workflows/<object>/create-entity-wor
 
 ## Zero Locators — Zero Assertions — High-Level Workflow Calls Only
 
-| ✅ Spec CAN | ❌ Spec MUST NOT |
+| ✅ Spec MUST ALWAYS | ❌ Spec MUST NEVER |
 |-------------|------------------|
 | Import `test` from `@playwright/test` | Import `expect` |
 | Call **high-level** workflow methods (`createEntity()`, `verifyEntityCreated()`) | Call granular workflow steps (`clickNewButton()`, `fillField()`, `clickSave()`) |
@@ -83,7 +83,7 @@ import { CsvReader, TestDataGenerator, SFDataFactory } from 'playwright-custom-c
 // import { COMPONENT_OBJECT_MAP } from '../../data/component-object-mapping';
 import { CreateEntityWorkflow } from '../../workflows/<object>/create-entity-workflow';
 
-test.describe('Entity Creation - Scenario Name @smoke', () => {
+test.describe('Entity Creation - Scenario Name', () => {
   let workflow: CreateEntityWorkflow;
   let dataFactory: SFDataFactory;
   let csvRow: Record<string, string>;
@@ -132,7 +132,7 @@ test.describe('Entity Creation - Scenario Name @smoke', () => {
     await dataFactory.teardown();
   });
 
-  test('should create entity with required fields @smoke', async ({ page }) => {
+  test('should create entity with required fields', { tag: ['@JIRA-101', '@smoke'] }, async ({ page }) => {
     const entityData = {
       name: TestDataGenerator.uniqueName(csvRow.namePrefix),
       type: csvRow.type,
@@ -153,8 +153,9 @@ test.describe('Entity Creation - Scenario Name @smoke', () => {
       } finally {
         // For redirect-based creation: extract from URL
         dataFactory.registerRecordFromUrl(page.url(), entityData.name);
-        // For non-redirect creation: query by unique field instead
-        // await dataFactory.getRecordIdByField('Entity__c', 'Name', entityData.name);
+        // For non-redirect creation: use COMPONENT_OBJECT_MAP for lookup
+        // const { objectApiName, uniqueField } = COMPONENT_OBJECT_MAP['Entity'];
+        // await dataFactory.getRecordIdByField(objectApiName, uniqueField, entityData.fieldValue);
       }
       if (toastError) throw toastError;
     });
@@ -195,14 +196,6 @@ const TEST_DATA = {
 - **Parent-child cleanup**: register child records FIRST, then parent (teardown deletes in registration order)
 - **Multi-record tests**: register each created record using the correct approach per record
 
-```typescript
-// Redirected record — in try/catch/finally block
-dataFactory.registerRecordFromUrl(page.url(), entityData.name);
-
-// Non-redirect record — in try/catch/finally block
-await dataFactory.getRecordIdByField(childObjectApiName, childUniqueField, childValue);
-```
-
 ## addLocatorHandler Rules
 
 | Rule | Requirement |
@@ -221,13 +214,15 @@ await dataFactory.getRecordIdByField(childObjectApiName, childUniqueField, child
 | Large form (> 10 fields / comboboxes) | `120_000` |
 | Multiple record creation / inline dialogs | `300_000` |
 
-## Test Organization
+## Test Organization and Tagging
 
 - `test.describe()` to group related tests
 - Test names start with `should` + business description
-- Tag with `@smoke` or `@regression`
+- Tags MUST be declared ONLY as an array inside the `test()` function — NEVER in `test.describe()` or at any other level
+- The tag array MUST begin with the Jira issue key as the first item (e.g., `@JIRA-101`), followed by test type tags (e.g., `@smoke`, `@regression`)
+- If no Jira issue key is provided: retrieve the prefix from `TEST_EXEC_PROJECT_KEY` env var to generate a dummy tag — include a reminder comment in code to replace it
 - Each test is independently runnable
 
-## Helper-utility calling
+## Helper Utility Calling
 
-- Helper utilities mentioned in `instructions/helper-utilities.instructions.md` are to be called and used in spec files, as per instructions or demand.
+Helper utilities from `instructions/helper-utilities.instructions.md` MUST be called and used within `spec` and `workflow` files, as instructed or as required by the task.

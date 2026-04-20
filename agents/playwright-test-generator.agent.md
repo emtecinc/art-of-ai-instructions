@@ -63,9 +63,10 @@ Do not duplicate, weaken, or override them.
 | `.github/instructions/page-objects.instructions.md` | `pages/**/*.ts` | Class structure, ResilientLocator, SF-Basepage reuse, locators, combobox, assertions |
 | `.github/instructions/workflows.instructions.md` | `workflows/**/*.ts` | Workflow class, `this.testStep()`, scope boundaries, data interfaces |
 | `.github/instructions/spec-files.instructions.md` | `tests/**/*.spec.ts` | Zero-locator rule, CSV loading, cleanup registration, verification chain, timeouts |
-| `.github/instructions/salesforce-stability.instructions.md` | `tests/**/*.ts` | Wait strategies, Lightning SPA, stale elements, common failure patterns |
+| `.github/instructions/salesforce-stability.instructions.md` | `tests/**/*.ts, pages/**/*.ts, workflows/**/*.ts` | Wait strategies, Lightning SPA, stale elements, common failure patterns |
 | `.github/instructions/test-data.instructions.md` | `test-data/**` | CSV naming, directory structure, static vs dynamic data, isolation |
-| `.github/instructions/helper-utilities.instructions.md` | `tests/**/*.ts` | Utility index — read the specific utility file on demand |
+| `.github/instructions/helper-utilities.instructions.md` | `tests/**/*.ts`, `workflows/**/*.ts` | Utility index — read the specific utility file on demand |
+| `.github/instructions/api-tests.instructions.md` | `tests/**/*.ts` | API-only test rules — no UI, no page objects |
 
 Utility reference docs: `.github/utilities/<name>.md` — read only the file you need
 (e.g. `.github/utilities/sf-data-factory.md`).
@@ -97,6 +98,17 @@ If the browser flow cannot be completed or verified:
 ---
 
 ## GENERATION WORKFLOW
+
+### File Generation Order (MANDATORY)
+
+| Step | File | Rule |
+|---|---|---|
+| 1 | CSV | Define test data inputs first |
+| 2 | Page Object(s) | Locators + actions + assertions |
+| 3 | Workflow | Business logic — calls page methods |
+| 4 | Spec | Orchestrates workflow + cleanup |
+
+**Always check if file exists before creating — extend, never rewrite.**
 
 ### Step 1 — Read the test plan scenario
 
@@ -143,7 +155,6 @@ Generate only the files this test requires.
 | Workflow | `workflows/<object>/<action>-<object>-<scenario>-workflow.ts` | `.github/instructions/workflows.instructions.md` |
 | Spec | `tests/<object>/<scenario>.spec.ts` | `.github/instructions/spec-files.instructions.md` |
 | Test Data | `test-data/<object>/<object>-<scenario>.csv` | `.github/instructions/test-data.instructions.md` |
-```
 
 ### Cleanup Compliance Reminder
 
@@ -153,6 +164,34 @@ Every generated spec that creates records MUST include:
 - Cleanup MUST NOT depend on toast verification success
 
 Follow `.github/instructions/spec-files.instructions.md` for the canonical patterns.
+
+---
+
+## INSTRUCTION ADHERENCE ENFORCEMENT (CRITICAL)
+
+### Mandatory Execution Order
+
+1. Load and process ALL auto-loaded instruction files for the file being generated
+2. Verify every rule in the applicable instruction file before writing code
+3. Run the POST-GENERATION CHECKLIST after all files are written
+4. If any checklist item fails — revise immediately, do NOT proceed
+
+### Fail-Fast Conditions
+
+Generation MUST STOP and report if:
+- An instruction file cannot be located or read
+- Browser verification cannot be completed for a scenario step
+- A generated file violates any rule from its applicable instruction file
+- A selector, method, or flow is invented without browser or codebase verification
+
+### Validation Checkpoints
+
+| Checkpoint | When | Action |
+|---|---|---|
+| Pre-generation | Before writing any file | Confirm all applicable instruction files are loaded |
+| Per-file | After writing each file | Verify against its instruction file rules |
+| Post-generation | After all files written | Run full POST-GENERATION CHECKLIST |
+| Cross-file | After checklist | Verify no duplication across files (e.g., expect() only in pages) |
 
 ---
 
@@ -185,7 +224,9 @@ Use `captureScreenshot(page: Page, testInfo: TestInfo, name: string)` from `play
 
 ---
 
-## POST-GENERATION CHECKLIST
+## POST-GENERATION CHECKLIST — MANDATORY COMPLIANCE
+
+Verify and strictly enforce EVERY item below after generating any code. If any item is not met, revise the generated code until full compliance is achieved.
 
 **Page Object:**
 - [ ] Extends `BasePage`, has `pageName` and `relativeUrl`
@@ -194,12 +235,14 @@ Use `captureScreenshot(page: Page, testInfo: TestInfo, name: string)` from `play
 - [ ] All locators: `private` getters, `ResilientLocator`, 3 strategies
 - [ ] LWC `c-*` scoping applied where applicable
 - [ ] `exact: true` on ambiguous labels
-- [ ] `try/catch` with `captureScreenshot()` on all methods
+- [ ] `try/catch` with `captureScreenshot()` on all methods — error wrapped with `throw new Error()`
 
 **Workflow:**
 - [ ] Extends `BaseWorkflow`, has `workflowName`
+- [ ] Overrides `testStep()` with `workflowName` prefix
 - [ ] Imports only needed page objects
 - [ ] Every method uses `this.testStep()`
+- [ ] Screenshot capture at critical steps (navigation, save, verification)
 - [ ] No locators, no `expect()`
 - [ ] Toast verification is separate from create method
 
@@ -208,6 +251,7 @@ Use `captureScreenshot(page: Page, testInfo: TestInfo, name: string)` from `play
 - [ ] CSV in `test-data/<object>/`
 - [ ] `try/catch/finally` for toast + cleanup
 - [ ] `addLocatorHandler` with `{ noWaitAfter: true }` in `beforeEach`
-- [ ] Tagged `@smoke` or `@regression`
+- [ ] Tags as array inside `test()`: Jira key first, then `@smoke`/`@regression`
+- [ ] If no Jira key provided, uses `TEST_EXEC_PROJECT_KEY` env var with reminder comment
 
 ### MUST use browser tools to verify steps before writing files. Do NOT write code without browser verification.

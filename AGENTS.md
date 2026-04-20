@@ -94,9 +94,10 @@ Test plan saved to `specs/` — contains scenario titles, step-by-step user acti
 | `page-objects.instructions.md` | `pages/**/*.ts` | `.github/instructions/page-objects.instructions.md` |
 | `workflows.instructions.md` | `workflows/**/*.ts` | `.github/instructions/workflows.instructions.md` |
 | `spec-files.instructions.md` | `tests/**/*.spec.ts` | `.github/instructions/spec-files.instructions.md` |
-| `salesforce-stability.instructions.md` | `tests/**/*.ts` | `.github/instructions/salesforce-stability.instructions.md` |
+| `salesforce-stability.instructions.md` | `tests/**/*.ts, pages/**/*.ts, workflows/**/*.ts` | `.github/instructions/salesforce-stability.instructions.md` |
 | `test-data.instructions.md` | `test-data/**` | `.github/instructions/test-data.instructions.md` |
-| `helper-utilities.instructions.md` | `tests/**/*.ts` | `.github/instructions/helper-utilities.instructions.md` |
+| `helper-utilities.instructions.md` | `tests/**/*.ts, workflows/**/*.ts` | `.github/instructions/helper-utilities.instructions.md` |
+| `api-tests.instructions.md` | `tests/**/*.ts` | `.github/instructions/api-tests.instructions.md` |
 
 Plus `.github/copilot-instructions.md` (local) for project-specific context.
 
@@ -120,6 +121,8 @@ Generated files: page objects, workflows, spec files, CSV test data — only wha
 | Element not found | Check `c-*` scoping, add ResilientLocator fallbacks |
 | Timing failure | Web-first assertions (`expect(locator).toBeVisible()`), spinner wait |
 | Combobox failure | 3-attempt retry loop |
+| Intermittent timeout | Apply session refresh middleware |
+| Cleanup skipped | Wrap toast + cleanup in `try/catch/finally` |
 | Environment issue (not code) | `test.fixme()` with explanatory comment |
 
 #### Instruction Dependencies

@@ -101,9 +101,13 @@ SF-Basepage grows **incrementally**. Add methods only when a test needs them:
 2. Exists → Reuse via workflow
 3. Doesn't exist → Add to `sf-page.ts` (if generic) or object page (if object-specific)
 
-### Navigation via App Launcher
+### Navigation Priority (Strict Order)
 
-All object navigation uses App Launcher through `SalesforcePage` methods. Workflow calls `sfPage.navigateToAppViaAppLauncher('ObjectName')` — page objects do not handle top-level navigation.
+**App Launcher → Global Actions → Global Search → Direct URL**
+
+- All object navigation uses App Launcher through `SalesforcePage` methods
+- Workflow calls `sfPage.navigateToAppViaAppLauncher('ObjectName')` — page objects do not handle top-level navigation
+- Only if the object cannot be found via App Launcher, escalate to the next method in priority order
 
 ## Locator Rules
 
@@ -135,7 +139,7 @@ private get nameInput() {
 
 **Exception:** Overlays (toasts, modals, dropdowns) render globally — do NOT scope to `c-*`.
 
-### Locator Priority Order
+### Locator Priority (Strict Order)
 
 1. `getByRole` → 2. `getByLabel` → 3. `getByPlaceholder` → 4. `getByText` → 5. `data-testid`/`data-id` → 6. Minimal CSS
 
@@ -226,9 +230,9 @@ async fillAccountName(name: string): Promise<void> {
   try {
     await this.accountNameInput.getLocator().fill(name);
   } catch (error) {
-    console.error('Failed to fill Account Name');
+    console.error(`Failed to fill Account Name: ${name}`);
     await this.captureScreenshot(this['page'], this['testInfo'], 'fill-account-name-failure');
-    throw error;
+    throw new Error(`fillAccountName failed: ${String(error)}`);
   }
 }
 ```
@@ -247,12 +251,11 @@ async clickSave(): Promise<void> {
     await this.saveButton.getLocator().click();
     await this['page'].locator('.slds-spinner').waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {});
   } catch (error) {
-    console.error('Failed to click Save');
+    console.error('Failed to click Save button');
     await this.captureScreenshot(this['page'], this['testInfo'], 'click-save-failure');
-    throw error;
+    throw new Error(`clickSave failed: ${String(error)}`);
   }
 }
-
 ```
 
 ## Verification Methods (Assertions Live HERE)
@@ -267,7 +270,7 @@ async verifyHeadingContains(expectedText: string): Promise<void> {
   } catch (error) {
     console.error(`Failed to verify heading: ${expectedText}`);
     await this.captureScreenshot(this['page'], this['testInfo'], 'verify-heading-failure');
-    throw error;
+    throw new Error(`verifyHeadingContains failed: ${String(error)}`);
   }
 }
 ```
@@ -302,12 +305,12 @@ async selectComboboxOption(comboboxName: string, optionText: string): Promise<vo
 
 ## Anti-Patterns
 
-- Never call methods directly on a `ResilientLocator` instance — always call `.getLocator()` first: `resilientLocator.getLocator().click()`
-- Never cache locators across page transitions — use getters
-- Never use `pressSequentially` — use `fill()`
-- Never use `waitForTimeout()` — see `salesforce-stability.instructions.md`
-- Never duplicate SF-Basepage actions in object pages
-- Never put object-specific logic in SF-Basepage
-- Never throw from toast verification methods — toast is transient and best-effort
-
-```
+| ❌ Never | ✅ Instead |
+|---|---|
+| `resilientLocator.click()` directly | `resilientLocator.getLocator().click()` |
+| Cache locators across page transitions | Use getter properties (re-resolved on each access) |
+| `pressSequentially` | `fill()` |
+| `waitForTimeout()` | Web-first assertions — see `salesforce-stability.instructions.md` |
+| Duplicate SF-Basepage actions in object pages | Check and reuse `sf-page.ts` |
+| Object-specific logic in SF-Basepage | Add to object page — never SF-Basepage |
+| Throw from toast verification methods | Toast is transient — warn only, never throw |

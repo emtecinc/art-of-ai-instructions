@@ -77,9 +77,7 @@ default,TestAccount,Customer,Active,SN
 - Duplicate values into new CSVs — no cross-file reads
 - This ensures full test isolation and parallel execution safety
 
-## Rules
+## Test Data MANDATORY Rules
 
 - **Never hardcode test data in spec files** — all data via CSV + `TestDataGenerator`
 - **Sensitive data** (passwords, URLs) goes in `process.env`, never in CSV
-
-```

@@ -80,6 +80,7 @@ patterns. Project-specific context lives in `.github/copilot-instructions.md`.
 - Use `browser_snapshot` to map all interactive elements before writing scenarios
 - Navigate all flows using `browser_*` tools
 - Do NOT take screenshots unless absolutely needed
+- If the user provides a URL, save it for use in test case metadata
 
 ### 2. Design Scenarios
 
@@ -101,7 +102,8 @@ Each scenario MUST have:
 - Step-by-step user actions (click, enter, select — never CSS or selectors)
 - Clear expected outcome per step
 - Starting state assumption
-- Tag: `@smoke` or `@regression`
+- Tag: Jira issue key followed by test type tags — `{tag: ['@JIRA-123', '@smoke']}` format only inside `test()`
+- If a URL was provided, include it in the scenario metadata
 
 ### 4. Save the Plan
 
@@ -142,8 +144,5 @@ Before calling `planner_save_plan`, confirm:
 - [ ] Every scenario has a business-readable title
 - [ ] Steps are user-action driven — no technical implementation details
 - [ ] Happy path + negative + edge cases present
-- [ ] Every scenario tagged `@smoke` or `@regression`
+- [ ] Every scenario tagged with Jira key + test type (e.g., `@JIRA-123`, `@smoke`)
 - [ ] Plan will be saved inside `specs/`
-```
-
----

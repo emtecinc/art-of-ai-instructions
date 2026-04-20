@@ -79,7 +79,7 @@ const verifier = new EmailVerificationService(
 
 const result = await verifier.verify({
   sentAfter: new Date(Date.now() - 60000), // time at which flow/process/user sends/triggers the email
-  address: 'jane@example.com', // Sent to
+  address: 'jane@example.com', // Receiver's mail address
   subject: 'Welcome to Acme',
 });
 
@@ -94,7 +94,7 @@ const result = await verifier.verify({
 ```typescript
 const emails = await verifier.verifyWithSalesforce({
   sentAfter: new Date(Date.now() - 60000), // time at which flow/process/user sends/triggers the email
-  address: 'jane@example.com', // Sent to
+  address: 'jane@example.com', // Receiver's mail address only
   subject: 'Welcome to Acme',
 });
 // Returns: EmailRecord[] — throws if none found
@@ -106,7 +106,7 @@ const emails = await verifier.verifyWithSalesforce({
 ```typescript
 const emails = await verifier.verifyWithMailosaur({
   sentAfter: new Date(Date.now() - 60000), // time at which flow/process/user sends/triggers the email
-  address: 'jane@example.com', // Sender address
+  address: 'jane@example.com', // Sender's mail address only
   subject: 'Welcome to Acme',
 });
 // Returns: InboxEmail[] — throws if none found
@@ -120,7 +120,7 @@ const emails = await verifier.verifyWithMailosaur({
 ```typescript
 interface EmailQuery {
   sentAfter: Date;    // Only emails sent after this timestamp
-  address: string;    // Recipient (SF ToAddress) or sender (inbox FromAddress)
+  address: string;    // Recipient or Sender address
   subject: string;    // Email subject to match
 }
 ```
@@ -185,11 +185,12 @@ interface InboxEmail {
 
 ## Critical Rules
 
-- ✅ **Capture sentAfter just BEFORE triggering email** — avoids false matches
+- ✅ **Capture sentAfter just BEFORE triggering email** — sentAfter time should be acquired when a triggering activity is just about to be invoked to avoid false matches
 - ✅ **Use relevant email addresses** — Ensure that sender's & recipient's address is correct and not random
 - ✅ **Increase retries for slow delivery** — email may take 10-30 seconds
-- ✅ **Verify sender/receiver, subject and content** — confirm correct email sent;
+- ✅ **Verify subject and content** — confirm correct email sent
+- ✅ **Verify sender and receiver** — there should be no confusion between sender and receiver
 - ❌ **Don't capture sentAfter after trigger** — may miss the email
-- ❌ **Never use verifyWithSalesforce and verifyWithMailosaur separately in the same test** — use `verify()` instead, unless subject differs between sent and received email
+- ❌ **Never use verifyWithSalesforce and verifyWithMailosaur in the same test** — use `verify()` instead. Unless the subject of email differs in sent and received email.
 
 ---
