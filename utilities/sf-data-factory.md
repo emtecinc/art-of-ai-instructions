@@ -57,13 +57,8 @@ test.afterEach(async () => {
   await dataFactory.teardown(); // ALWAYS runs — pass or fail
 });
 
-// Pattern 1.1: Use when a related record is created inline without redirecting
-test.step('Register inline-created account for cleanup', async () => {
-  const { objectApiName, uniqueField } = COMPONENT_OBJECT_MAP['Account'];
-  await dataFactory.getRecordIdByField(objectApiName, uniqueField, accountName);
-});
-
-// Pattern 1.2: Use when Save redirects to the created record's detail page
+// Pattern 1: Use when Save redirects to the created record's detail page.
+// ALL records (primary + inline-created) are registered together in the finally block.
 await test.step('Verify toast and register cleanup', async () => {
   let toastError: unknown;
   try {
@@ -71,8 +66,13 @@ await test.step('Verify toast and register cleanup', async () => {
   } catch (error) {
     toastError = error;
   } finally {
-    // Extract recordId from URL — save redirected to record page
-    dataFactory.registerRecordFromUrl(page.url(), data.name);
+    // Primary record: wait for full URL pattern, then register — captures recordId for reuse
+    const { recordId } = await dataFactory.waitAndRegisterRecordFromUrl(page, data.name);
+    // Inline-created records (created during the same workflow): use COMPONENT_OBJECT_MAP
+    // Register parent-before-child so teardown (reversed) deletes child first
+    const { objectApiName, uniqueField } = COMPONENT_OBJECT_MAP['Account'];
+    await dataFactory.getRecordIdByField(objectApiName, uniqueField, data.parentAccount.name).catch(() => null);
+    await dataFactory.getRecordIdByField(objectApiName, uniqueField, data.childAccount.name).catch(() => null);
   }
 
   if (toastError) throw toastError;
@@ -197,6 +197,16 @@ Delete a single record immediately via REST API.
 
 ### UI Record Registration
 
+#### `waitAndRegisterRecordFromUrl(page, name?, timeout?): Promise<{ objectApiName, recordId }>`
+Wait for the browser URL to resolve to the full Salesforce record page pattern (`/lightning/r/<Object>/<RecordId>/view`), then extract and register for cleanup. **Preferred method for redirect-based records** — handles cases where Salesforce hasn't fully redirected yet.
+
+**Parameters**:
+- `page`: Playwright Page object
+- `name`: Optional display name for logging
+- `timeout`: Max wait time in ms (default: `30000`)
+
+---
+
 #### `getRecordIdByField(sObject, fieldName, value, autoRegister?): Promise<string>`
 Query Salesforce for record ID by unique field value and auto-register for cleanup.
 
@@ -277,7 +287,9 @@ interface CompositeSubresponse {
 - ✅ **Register BEFORE assertions** — cleanup step comes immediately after save
 - ✅ **Always use test.afterEach()** — never call `teardown()` inside test body
 - ✅ **Child-before-parent order** — register child first when creating related records
-- ✅ **Query via getRecordIdByField** — never extract ID from toast message or URL
+- ✅ **Use `waitAndRegisterRecordFromUrl(page, name)`** for redirect-based records — waits for full URL before extracting
+- ✅ **Use `COMPONENT_OBJECT_MAP` for `getRecordIdByField`** — destructure `objectApiName` and `uniqueField` from the map, never hardcode
+- ✅ **ALL inline records in `finally`** — when a workflow creates inline records, register them ALL in the same `finally` block as the primary record
 - ✅ **ALWAYS use PayloadBuilder for API creation** — structured, type-safe payloads
 - ✅ **ALWAYS use `executeCompositeRequest()` for more than 1 read/write requests** — avoid using `fetchRecord`, `deleteRecord`, `updateRecord` and `createRecord` for multiple API calls unless necessary. Leverage references between subrequests for parent-child relationships and to ensure atomicity when needed.
 - ✅ **API methods should be called in workflow** — ensure API methods are invoked within the appropriate test workflow
