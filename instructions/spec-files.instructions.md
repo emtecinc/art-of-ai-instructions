@@ -144,8 +144,11 @@ test.describe('Entity Creation - Scenario Name', () => {
   test.afterEach(async () => {
     await dataFactory.teardown();
   });
-  // TODO: Replace the Jira key below with the actual key. If not provided, use the TEST_EXEC_PROJECT_KEY env variable prefix.
-  test('should create entity with required fields', { tag: ['@JIRA-101', '@smoke'] }, async ({ page }) => {
+
+  // Use the correct Jira key in the tag below. If key is not provided, generate a key using the TEST_EXEC_PROJECT_KEY env variable and include a reminder to update it.
+  test('should create entity with required fields', { 
+      tag: ['@JIRA-101', '@smoke'] 
+    }, async ({ page }) => {
     const entityData = {
       name: TestDataGenerator.uniqueName(csvRow.namePrefix),
       type: csvRow.type,

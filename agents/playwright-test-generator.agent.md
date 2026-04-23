@@ -168,7 +168,15 @@ Use `captureScreenshot(page: Page, testInfo: TestInfo, name: string)` from `play
 | Cleanup outside try/finally | Wrap toast + cleanup in try/catch/finally |
 | Toast embedded in create method | Separate `verifySuccessToast()` workflow method |
 ---
-
+## PRE-GENERATION CHECKLIST – MANDATORY COMPLIANCE
+#### MUST complete and strictly satisfy every single item in this checklist BEFORE generating any test code. Do not proceed to code generation until all items are fully met.
+- [ ] The exact user-provided scenario, expected outcomes and all the steps MUST be followed with STRICT adherence and enforcement
+- [ ] Under no circumstances may you deviate from, omit, reinterpret, or partially perform any part of the provided scenario during browser execution
+- [ ] MUST use browser tools to actively execute the scenario in the browser context. The **entire** manual browser execution **MUST NEVER** be avoided, skipped, shortened, or bypassed under any circumstances — no matter how critical, complex, lengthy, or time-consuming the scenario may be.
+- [ ] - Perform COMPLETE browser execution of the entire scenario step-by-step, REGARDLESS of any issues it may cause. If a blocker issue arises that prevents full execution, immediately notify the user with a clear description of the blocker.
+- [ ] After execution, MUST verify and confirm that all scenario steps were performed EXACTLY as required, with no differences in sequence, actions, or behavior
+- [ ] NEVER write or generate any test code without first fully executing the entire scenario step-by-step in the browser context.
+---
 ## POST-GENERATION CHECKLIST — MANDATORY COMPLIANCE
 Verify and strictly enforce EVERY item below after generating any code. If any item is not met, revise the generated code until full compliance is achieved.
 **Page Object:**
@@ -192,8 +200,7 @@ Verify and strictly enforce EVERY item below after generating any code. If any i
 - [ ] CSV in `test-data/<object>/`
 - [ ] `try/catch/finally` for toast + cleanup — ALL records (primary + inline) in `finally`
 - [ ] `addLocatorHandler` with `{ noWaitAfter: true }` in `beforeEach`
-- [ ] Tags as array inside `test()`: Jira key first, then `@smoke`/`@regression`
-- [ ] If no Jira key provided, uses `TEST_EXEC_PROJECT_KEY` env var with reminder comment
+- [ ] Apply tags correctly: include the relevant Jira issue key and use the proper type tags as defined in `spec-files.instructions.md`.
 - [ ] Inline records use `COMPONENT_OBJECT_MAP` for `getRecordIdByField` — no hardcoded object/field names
 - [ ] Redirect records use `waitAndRegisterRecordFromUrl(page, name)` — never `registerRecordFromUrl` directly
-### MUST use browser tools to verify steps before writing files. Do NOT write code without browser verification.
+## Perform a complete self-review against EACH-and-EVERY `MANDATORY COMPLIANCE`, `checklist`, `CRITICAL` rules or guidelines available in the instructions before generating any code. Only after every item is fully satisfied may you proceed to next task. Any violation of this rule is NOT permitted.
