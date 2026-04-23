@@ -26,7 +26,7 @@ import { CreateEntityWorkflow } from '../../workflows/<object>/create-entity-wor
 | Define test data objects | Use `page.locator()`, `getByRole()`, `getByLabel()`, `getByText()` **except inside `addLocatorHandler` setup** |
 | Use `test.step()` for grouping | Call `expect()` anywhere |
 | Read CSV via `CsvReader` | Contain hardcoded test data values |
-| Access `page` for constructors, `addLocatorHandler`, `page.url()` | Orchestrate individual UI actions — that belongs in workflows |
+| Access `page` for constructors and `addLocatorHandler`; pass `page` to `waitAndRegisterRecordFromUrl()` | Orchestrate individual UI actions — that belongs in workflows |
 
 ### Exception: `addLocatorHandler` Setup (MANDATORY)
 
@@ -35,6 +35,17 @@ The **only place** specs may use `page.locator()` / `page.getByRole()` is inside
 2. **Toast auto-dismiss** — prevents toast overlays from blocking subsequent interactions
 
 These handlers are **boilerplate infrastructure**, not test logic. Copy verbatim from the template below.
+
+## Test Organization and Tagging
+- Use `test.describe()` to group related tests
+- Test names start with `should` + business oriented description
+- Tags MUST be declared ONLY as an array inside the `test()` function. Usage of tags in `test.describe()` or at any other level is STRICTLY FORBIDDEN.
+- The tag array MUST begin with the Jira issue key as the first item (e.g., `@JIRA-101`), followed by relevant test type tags (e.g., `@smoke`, `@regression`).
+- If no Jira issue key is provided for the test:
+  - Retrieve the alphabetic prefix from the `TEST_EXEC_PROJECT_KEY` environment variable
+  - Use it to generate a dummy Jira tag (e.g., `@JIRA-101` or similar format)
+  - ALWAYS include a clear reminder in the generated code for the tester to confirm and replace the dummy key with the correct Jira issue key once the test is generated
+- EVERY test is independently runnable
 
 ## Verification Chain: Spec → Workflow → Page (CRITICAL)
 
@@ -66,10 +77,12 @@ Every record created during a test MUST be registered for cleanup. Toast verific
 
 | After save... | Use |
 |---|---|
-| Page redirected to record detail URL | `dataFactory.registerRecordFromUrl(page.url(), name)` |
-| Page did NOT redirect (inline, modal, quick action, embedded) | `await dataFactory.getRecordIdByField(objectApiName, field, value)` |
+| Page redirected to record detail URL | `await dataFactory.waitAndRegisterRecordFromUrl(page, name)` |
+| Page did NOT redirect (inline, modal, quick action, embedded) | `await dataFactory.getRecordIdByField(objectApiName, uniqueField, value)` via `COMPONENT_OBJECT_MAP` |
 
-- See `utilities/sf-data-factory.md` for full API reference and usage patterns.
+- **Redirect records**: always use `waitAndRegisterRecordFromUrl(page, name)` — it waits for the full URL pattern (`/lightning/r/<Object>/<RecordId>/view`) before extracting. Never call `registerRecordFromUrl(page.url())` directly.
+- **Inline/non-redirect records**: always destructure `COMPONENT_OBJECT_MAP` for `objectApiName` and `uniqueField` — never hardcode object names or field names in `getRecordIdByField()` calls.
+- **All inline-created records** (child accounts, parent accounts, relationship records) MUST be registered in the same `finally` block as the primary record — guarantees cleanup even if toast or earlier steps fail.
 - Never use both URL extraction and unique value lookup for the same record.
 - The workflow handles toast; the **spec** handles identity and cleanup.
 
@@ -131,7 +144,7 @@ test.describe('Entity Creation - Scenario Name', () => {
   test.afterEach(async () => {
     await dataFactory.teardown();
   });
-
+  // TODO: Replace the Jira key below with the actual key. If not provided, use the TEST_EXEC_PROJECT_KEY env variable prefix.
   test('should create entity with required fields', { tag: ['@JIRA-101', '@smoke'] }, async ({ page }) => {
     const entityData = {
       name: TestDataGenerator.uniqueName(csvRow.namePrefix),
@@ -144,6 +157,7 @@ test.describe('Entity Creation - Scenario Name', () => {
     });
 
     // Toast verification + cleanup — try/catch/finally guarantees cleanup runs
+    // ALL records (primary + inline) registered in finally — never in separate steps
     await test.step('Verify toast and register cleanup', async () => {
       let toastError: unknown;
       try {
@@ -151,11 +165,11 @@ test.describe('Entity Creation - Scenario Name', () => {
       } catch (error) {
         toastError = error;
       } finally {
-        // For redirect-based creation: extract from URL
-        dataFactory.registerRecordFromUrl(page.url(), entityData.name);
-        // For non-redirect creation: use COMPONENT_OBJECT_MAP for lookup
-        // const { objectApiName, uniqueField } = COMPONENT_OBJECT_MAP['Entity'];
-        // await dataFactory.getRecordIdByField(objectApiName, uniqueField, entityData.fieldValue);
+        // Primary record: wait for redirect URL to resolve, then register
+        await dataFactory.waitAndRegisterRecordFromUrl(page, entityData.name);
+        // Inline-created records: use COMPONENT_OBJECT_MAP — never hardcode objectApiName/uniqueField
+        // const { objectApiName, uniqueField } = COMPONENT_OBJECT_MAP['Account'];
+        // await dataFactory.getRecordIdByField(objectApiName, uniqueField, entityData.childAccountName);
       }
       if (toastError) throw toastError;
     });
@@ -188,13 +202,14 @@ const TEST_DATA = {
 ## SFDataFactory Cleanup Rules
 
 - **Every record created during a test MUST be registered for cleanup** — no orphaned records
-- **try/catch/finally** for toast verification + cleanup registration — cleanup in `finally` block
-- **Redirected record** → `registerRecordFromUrl(page.url(), name)` — extract recordId from URL
-- **Non-redirect record (inline, modal, quick action, embedded)** → `await getRecordIdByField(objectApiName, uniqueField, value)` — query by unique value
+- **try/catch/finally** for toast verification + cleanup registration — ALL records (primary + inline) in `finally` block
+- **Redirected record** → `await dataFactory.waitAndRegisterRecordFromUrl(page, name)` — waits for full URL, then registers
+- **Non-redirect record (inline, modal, quick action, embedded)** → destructure `COMPONENT_OBJECT_MAP` for `objectApiName` and `uniqueField`, then call `await dataFactory.getRecordIdByField(objectApiName, uniqueField, value)` — never hardcode object/field names
+- **Inline records in `finally`** — when a workflow creates inline records (child accounts, parent accounts, etc.), register them ALL in the same `finally` block as the primary record
 - **Never use both approaches for the same record**
 - `teardown()` in `afterEach` — never inside the test body
 - **Parent-child cleanup**: register child records FIRST, then parent (teardown deletes in registration order)
-- **Multi-record tests**: register each created record using the correct approach per record
+- **Multi-record tests**: register ALL created records in the `finally` block using the correct approach per record
 
 ## addLocatorHandler Rules
 
@@ -213,15 +228,6 @@ const TEST_DATA = {
 | Simple form (≤ 10 fields) | Default (30s) |
 | Large form (> 10 fields / comboboxes) | `120_000` |
 | Multiple record creation / inline dialogs | `300_000` |
-
-## Test Organization and Tagging
-
-- `test.describe()` to group related tests
-- Test names start with `should` + business description
-- Tags MUST be declared ONLY as an array inside the `test()` function — NEVER in `test.describe()` or at any other level
-- The tag array MUST begin with the Jira issue key as the first item (e.g., `@JIRA-101`), followed by test type tags (e.g., `@smoke`, `@regression`)
-- If no Jira issue key is provided: retrieve the prefix from `TEST_EXEC_PROJECT_KEY` env var to generate a dummy tag — include a reminder comment in code to replace it
-- Each test is independently runnable
 
 ## Helper Utility Calling
 
