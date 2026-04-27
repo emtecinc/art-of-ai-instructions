@@ -4,7 +4,7 @@
 - Creating Salesforce records in bulk via REST API (`SFDataFactory.executeCompositeRequest`)
 - Creating Salesforce records individually (`SFDataFactory.createRecord` and `SFDataFactory.updateRecord`)
 - Build simple or complex payloads with nested objects
-- Merge static CSV data with dynamic test values as required
+- Merge static template/CSV data with dynamic test values as required
 
 ---
 
@@ -25,7 +25,7 @@ import { PayloadBuilder } from 'playwright-custom-core';
 
 ### Payload building patterns:
 1. Can build from empty object.
-2. Can build from existing object (e.g. data in a CSV row/file). **Preferred**
+2. Can build from existing object (e.g. data in a CSV row/file). **Preferred** 
 
 ---
 
@@ -47,14 +47,15 @@ const payload = PayloadBuilder
 ```typescript
 import { PayloadBuilder, TestDataGenerator } from 'playwright-custom-core';
 
+// ex. Read test-data/account/account.csv
 const csvPath = path.resolve(__dirname, '../../test-data/account/account.csv');
 const csvRow = CsvReader.readRow<Record<string, string>>(csvPath, 0)!;
 
 const AccountPayload = {
-  Name: csvRow.name,
-  Type: csvRow.type,
-  Industry: 'Finance',
-  BillingAddress: {
+  Name: csvRow.name,          // Static value from CSV
+  Type: csvRow.type,          // Static value from CSV
+  Industry: 'Finance',        // Dynamic override in test code
+  BillingAddress: {           // Nested object with dynamic overrides
     City: 'San Francisco',
     State: 'CA',
   },
@@ -68,7 +69,7 @@ const payload = PayloadBuilder
 // Result: { Name: "Account_1710345678901", Type: "Customer", Industry: "Finance" }
 ```
 
-### Pattern 3: Merge Multiple Fields
+### Pattern 4: Merge Multiple Fields
 ```typescript
 const dynamicFields = {
   Name: TestDataGenerator.uniqueName('Account'),
@@ -77,14 +78,12 @@ const dynamicFields = {
 };
 
 const payload = PayloadBuilder
-  // fromObject or empty
+  // fromObject or empty or fromFile
   .merge(dynamicFields)
   .build();
 ```
 
 ---
-
-## Static Factory Methods
 
 ### `fromObject<T>(base: T): PayloadBuilder<T>`
 Create builder from existing object.
@@ -93,7 +92,7 @@ Create builder from existing object.
 - `base`: Base object to use as starting payload
 
 ```typescript
-const basePayload = { Name: 'Test', Type: 'Customer' }; // type safe object from CSV or defined inline
+const basePayload = { Name: 'Test', Type: 'Customer' }; // type safe object by reading from CSV or defined inline
 const builder = PayloadBuilder.fromObject(basePayload);
 ```
 
@@ -160,22 +159,6 @@ builder
 
 ---
 
-## Output Methods
-
-### `build(): T`
-Build and return the final payload object.
-
-**Returns**: Deep-cloned final payload
-
-**Use case**: Pass to `SFDataFactory.createRecord()` or `fetch()` body
-
-```typescript
-const payload = builder.build();
-const accountId = await dataFactory.createRecord('Account', payload);
-```
-
----
-
 ### `toJSON(pretty?: boolean): string`
 Build and return payload as JSON string.
 
@@ -205,7 +188,7 @@ test.afterEach(async () => {
 
 test('should create account with address via API', async () => {
   const accountPayload1 = PayloadBuilder
-    // fromObject or empty
+    .// fromObject or empty or fromFile
     .set('Name', TestDataGenerator.uniqueName('APIAccount'))
     .set('Type', 'Customer')
     .setNested('BillingAddress.City', 'San Francisco')
@@ -213,7 +196,7 @@ test('should create account with address via API', async () => {
     .build();
 
   const accountPayload2 = PayloadBuilder
-    // fromObject or empty
+    .// fromObject or empty or fromFile
     .set('Name', TestDataGenerator.uniqueName('APIAccount2'))
     .set('Type', 'Partner')
     .build();
@@ -231,8 +214,9 @@ test('should create account with address via API', async () => {
     body: accountPayload2,
   };
   const response = await dataFactory.executeCompositeRequest([sub1, sub2]);
-
+  
   // Extract the data for assertions as needed
+
 });
 ```
 
@@ -241,13 +225,13 @@ test('should create account with address via API', async () => {
 test('should create contact linked to account via API', async () => {
   // 1. Create parent account
   const accountPayload = PayloadBuilder
-    // fromObject or empty
+    .// fromObject or empty or fromFile
     .set('Name', TestDataGenerator.uniqueName('ParentAccount'))
     .build();
 
   // 2. Create child contact
   const contactPayload = PayloadBuilder
-    // fromObject or empty
+    .// fromObject or empty or fromFile
     .set('LastName', TestDataGenerator.uniqueName('Contact'))
     .set('Email', TestDataGenerator.uniqueEmail('contact'))
     .set('AccountId', '@{refAccount.id}')  // Link to parent
@@ -275,6 +259,7 @@ test('should create contact linked to account via API', async () => {
   // 3. Verify contact is linked to account
   const contact = await dataFactory.fetchRecord('Contact', contactId, ['AccountId']);
   expect(contact.AccountId).toBe(accountId);
+
 });
 ```
 
@@ -319,28 +304,14 @@ const contact2 = baseBuilder
   .set('Email', TestDataGenerator.uniqueEmail('contact2'))
   .build();
 ```
-
-### Pattern: Combine CSV Static Data with Dynamic Overrides
-```typescript
-import { CsvReader } from 'playwright-custom-core';
-
-const csvPath = path.resolve(__dirname, '../../test-data/account/account-api-data.csv');
-const csvRow = CsvReader.readRow<Record<string, string>>(csvPath, 0)!;
-
-const payload = PayloadBuilder
-  .fromObject({ Name: csvRow.namePrefix, Type: csvRow.type, Industry: csvRow.industry })
-  .set('Name', TestDataGenerator.uniqueName(csvRow.namePrefix))  // Dynamic
-  .build();
-```
-
 ---
 
 ## Best Practices
 
-- ✅ **Read data from related CSV** — use to build with `fromObject` by referring to any relevant CSV file and row for the test case
-- ✅ **Confirm types before building payload** — use TypeScript interfaces and `strict()` to catch errors early. ex. Date in CSV is string, but API expects Date in ISO format → convert in test code before building payload
-- ✅ **Override only unique/dynamic fields** — leverage static values from CSV and only override fields that need to be unique or dynamic
-- ✅ **Build with minimum payload** — only include required fields and those relevant to the test case
+- ✅ **Read data from related CSV** — use to build with `fromObject` by refering to any relevant CSV file and row for the test case
+- ✅ **Confirm types before building payload** — use TypeScript interfaces and `strict()` to catch errors early. ex. Date in CSV is string, but API expects Date in ISO format → convert in test code before building payload 
+- ✅ **Override only unique/dynamic fields** — leverage static values from CSV and only override fields that need to be unique or dynamic for the test case.
+- ✅ **Build with minimum payload** — only include required fields and those relevant to the test case or any specified.
 - ✅ **Combine with `TestDataGenerator`** — generate unique values for required fields
 - ✅ **Use `peek()` for debugging ONLY** — inspect intermediate state
 - ❌ **Don't hardcode field values in test code** — use CSV or templates

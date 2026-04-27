@@ -128,8 +128,8 @@ interface EmailQuery {
 ### RetryConfig
 ```typescript
 interface RetryConfig {
-  maxAttempts: number;  // Default: 3
-  delayMs: number;      // Default: 5000 (5 seconds)
+  maxAttempts: number;  // Default: 6
+  delayMs: number;      // Default: 10_000
 }
 ```
 
@@ -189,8 +189,8 @@ interface InboxEmail {
 - ✅ **Use relevant email addresses** — Ensure that sender's & recipient's address is correct and not random
 - ✅ **Increase retries for slow delivery** — email may take 10-30 seconds
 - ✅ **Verify subject and content** — confirm correct email sent
-- ✅ **Verify sender and receiver** — there should be no confusion between sender and receiver
+- ✅ **Verify sender and receiver** — there should be not be any confusion between sender and receiver
 - ❌ **Don't capture sentAfter after trigger** — may miss the email
-- ❌ **Never use verifyWithSalesforce and verifyWithMailosaur in the same test** — use `verify()` instead. Unless the subject of email differs in sent and received email.
+- ❌ **Don't EVER use verifyWithSalesforce and verifyMailosaur in the same test** — use `verify()` instead. Unless the subject of email differs in sent and recieved email. 
 
 ---
