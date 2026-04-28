@@ -2,12 +2,10 @@
 applyTo: "tests/**/*.spec.ts"
 ---
 
-# Spec File Rules
-
-## Spec files are purely declarative — they orchestrate workflows with test data. ZERO DOM interaction.
+# Spec File Rules and Guidelines
+Spec files are purely DECLARATIVE — they orchestrate workflows with test data. ZERO DOM interaction.
 
 ## Imports
-
 ```typescript
 import { test } from '@playwright/test';           // NEVER import expect
 import * as path from 'path';
@@ -18,8 +16,7 @@ import { CreateEntityWorkflow } from '../../workflows/<object>/create-entity-wor
 ```
 
 ## Zero Locators — Zero Assertions — High-Level Workflow Calls Only
-
-| ✅ Spec MUST ALWAYS | ❌ Spec MUST NEVER |
+| Spec MUST ALWAYS | Spec MUST NEVER |
 |-------------|------------------|
 | Import `test` from `@playwright/test` | Import `expect` |
 | Call **high-level** workflow methods (`createEntity()`, `verifyEntityCreated()`) | Call granular workflow steps (`clickNewButton()`, `fillField()`, `clickSave()`) |
@@ -29,11 +26,9 @@ import { CreateEntityWorkflow } from '../../workflows/<object>/create-entity-wor
 | Access `page` for constructors and `addLocatorHandler`; pass `page` to `waitAndRegisterRecordFromUrl()` | Orchestrate individual UI actions — that belongs in workflows |
 
 ### Exception: `addLocatorHandler` Setup (MANDATORY)
-
 The **only place** specs may use `page.locator()` / `page.getByRole()` is inside `beforeEach` when registering `addLocatorHandler` for:
 1. **Duplicate detection dialog** — closes "Similar Records Exist" dialog
 2. **Toast auto-dismiss** — prevents toast overlays from blocking subsequent interactions
-
 These handlers are **boilerplate infrastructure**, not test logic. Copy verbatim from the template below.
 
 ## Test Organization and Tagging
@@ -48,25 +43,20 @@ These handlers are **boilerplate infrastructure**, not test logic. Copy verbatim
 - EVERY test is independently runnable
 
 ## Verification Chain: Spec → Workflow → Page (CRITICAL)
-
 Assertions follow a strict delegation chain:
-
 ```
 Spec calls: workflow.verifyEntityCreated(data)    ← high-level call
   └─ Workflow: this.testStep('Verify entity name', () => this.detailPage.verifyEntityName(data.name))
        └─ Page Object: await expect(heading).toContainText(data.name)    ← expect() lives HERE only
 ```
-
 - **Spec:** calls workflow verification methods — never calls `expect()` directly
 - **Workflow:** delegates to page object verification methods via `this.testStep()` — never imports `expect`
 - **Page Object:** contains all `expect()` assertions — the ONLY layer that imports `expect`
 
 ## Cleanup Registration — try/catch/finally Pattern (CRITICAL)
-
 Every record created during a test MUST be registered for cleanup. Toast verification + cleanup MUST be wrapped in `try/catch/finally` to guarantee cleanup runs regardless of toast success.
 
 ### Canonical Post-Creation Sequence in Specs
-
 ```
 1. Call workflow create method           (handles save internally)
 2. try/catch/finally: toast + cleanup    (toast is best-effort, cleanup in finally)
@@ -74,20 +64,59 @@ Every record created during a test MUST be registered for cleanup. Toast verific
 ```
 
 ### Decision Rule
-
 | After save... | Use |
 |---|---|
 | Page redirected to record detail URL | `await dataFactory.waitAndRegisterRecordFromUrl(page, name)` |
 | Page did NOT redirect (inline, modal, quick action, embedded) | `await dataFactory.getRecordIdByField(objectApiName, uniqueField, value)` via `COMPONENT_OBJECT_MAP` |
-
-- **Redirect records**: always use `waitAndRegisterRecordFromUrl(page, name)` — it waits for the full URL pattern (`/lightning/r/<Object>/<RecordId>/view`) before extracting. Never call `registerRecordFromUrl(page.url())` directly.
-- **Inline/non-redirect records**: always destructure `COMPONENT_OBJECT_MAP` for `objectApiName` and `uniqueField` — never hardcode object names or field names in `getRecordIdByField()` calls.
-- **All inline-created records** (child accounts, parent accounts, relationship records) MUST be registered in the same `finally` block as the primary record — guarantees cleanup even if toast or earlier steps fail.
+- Read `.github/utilities/sf-data-factory.md` for COMPLETE reference of cleanup and usage patterns.
 - Never use both URL extraction and unique value lookup for the same record.
-- The workflow handles toast; the **spec** handles identity and cleanup.
+- The `workflow` handles toast; the `spec` handles identity and cleanup.
+
+## Test Data Loading
+CSV is loaded once in `beforeEach` — `csvRow` is available to all tests:
+```typescript
+// In beforeEach:
+const csvPath = path.resolve(__dirname, '../../test-data/<object>/<scenario>.csv');
+csvRow = CsvReader.readRow<Record<string, string>>(csvPath, 0)!;
+// In test:
+const TEST_DATA = {
+  name: TestDataGenerator.uniqueName(csvRow.namePrefix),
+  type: csvRow.type,
+  email: TestDataGenerator.uniqueEmail(csvRow.emailPrefix),
+};
+```
+
+## SFDataFactory Cleanup Rules
+- **Every record created during a test MUST be registered for cleanup** — no orphaned records
+- **try/catch/finally** for toast verification + cleanup registration — ALL records (primary + inline) in `finally` block
+- **Redirected record** → `await dataFactory.waitAndRegisterRecordFromUrl(page, name)` — waits for full URL, then registers
+- **Non-redirect record (inline, modal, quick action, embedded)** → destructure `COMPONENT_OBJECT_MAP` for `objectApiName` and `uniqueField`, then call `await dataFactory.getRecordIdByField(objectApiName, uniqueField, value)` — never hardcode object/field names
+- **Inline records in `finally`** — when a workflow creates inline records (child accounts, parent accounts, etc.), register them ALL in the same `finally` block as the primary record
+- **Never use both approaches for the same record**
+- `teardown()` in `afterEach` — never inside the test body
+- **Parent-child cleanup**: register child records FIRST, then parent (teardown deletes in registration order)
+- **Multi-record tests**: register ALL created records in the `finally` block using the correct approach per record
+
+## addLocatorHandler Rules
+| Rule | Requirement |
+|------|-------------|
+| Registration | `page.addLocatorHandler()` in `beforeEach` — MANDATORY for record-creating tests |
+| `noWaitAfter` | Always pass `{ noWaitAfter: true }` |
+| Duplicate dialog | Iterate `closeButtons.count()` with `.catch(() => {})` |
+| Toast overlay | Auto-dismiss to prevent blocking subsequent interactions |
+| No visibility assertion | Never assert `dialog.not.toBeVisible()` after dismissing |
+
+## Timeout Rules
+| Complexity | Timeout |
+|------------|---------|
+| Simple form (≤ 10 fields) | Default (30s) |
+| Large form (> 10 fields / comboboxes) | `120_000` |
+| Multiple record creation / inline dialogs | `300_000` |
+
+## Helper Utility Calling
+Helper utilities from `instructions/helper-utilities.instructions.md` MUST be called and used within `spec` and `workflow` files, as instructed or as required by the task.
 
 ## Complete Spec Template
-
 ```typescript
 import { test } from '@playwright/test';
 import * as path from 'path';
@@ -184,54 +213,3 @@ test.describe('Entity Creation - Scenario Name', () => {
   });
 });
 ```
-
-## Test Data Loading
-
-CSV is loaded once in `beforeEach` — `csvRow` is available to all tests:
-
-```typescript
-// In beforeEach:
-const csvPath = path.resolve(__dirname, '../../test-data/<object>/<scenario>.csv');
-csvRow = CsvReader.readRow<Record<string, string>>(csvPath, 0)!;
-
-// In test:
-const TEST_DATA = {
-  name: TestDataGenerator.uniqueName(csvRow.namePrefix),
-  type: csvRow.type,
-  email: TestDataGenerator.uniqueEmail(csvRow.emailPrefix),
-};
-```
-
-## SFDataFactory Cleanup Rules
-
-- **Every record created during a test MUST be registered for cleanup** — no orphaned records
-- **try/catch/finally** for toast verification + cleanup registration — ALL records (primary + inline) in `finally` block
-- **Redirected record** → `await dataFactory.waitAndRegisterRecordFromUrl(page, name)` — waits for full URL, then registers
-- **Non-redirect record (inline, modal, quick action, embedded)** → destructure `COMPONENT_OBJECT_MAP` for `objectApiName` and `uniqueField`, then call `await dataFactory.getRecordIdByField(objectApiName, uniqueField, value)` — never hardcode object/field names
-- **Inline records in `finally`** — when a workflow creates inline records (child accounts, parent accounts, etc.), register them ALL in the same `finally` block as the primary record
-- **Never use both approaches for the same record**
-- `teardown()` in `afterEach` — never inside the test body
-- **Parent-child cleanup**: register child records FIRST, then parent (teardown deletes in registration order)
-- **Multi-record tests**: register ALL created records in the `finally` block using the correct approach per record
-
-## addLocatorHandler Rules
-
-| Rule | Requirement |
-|------|-------------|
-| Registration | `page.addLocatorHandler()` in `beforeEach` — MANDATORY for record-creating tests |
-| `noWaitAfter` | Always pass `{ noWaitAfter: true }` |
-| Duplicate dialog | Iterate `closeButtons.count()` with `.catch(() => {})` |
-| Toast overlay | Auto-dismiss to prevent blocking subsequent interactions |
-| No visibility assertion | Never assert `dialog.not.toBeVisible()` after dismissing |
-
-## Timeout Rules
-
-| Complexity | Timeout |
-|------------|---------|
-| Simple form (≤ 10 fields) | Default (30s) |
-| Large form (> 10 fields / comboboxes) | `120_000` |
-| Multiple record creation / inline dialogs | `300_000` |
-
-## Helper Utility Calling
-
-Helper utilities from `instructions/helper-utilities.instructions.md` MUST be called and used within `spec` and `workflow` files, as instructed or as required by the task.

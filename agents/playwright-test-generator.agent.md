@@ -71,39 +71,32 @@ When an instruction file auto-loads, follow its rules exactly. They take absolut
 ---
 
 ---
-
 ## PREFLIGHT — BROWSER SESSION GATE (MUST RUN FIRST)
-
 Before reading any instruction file or any codebase file, you MUST:
-
 1. Call `generator_setup_page` with `BASE_URL` (from env or `process.env.BASE_URL`)
 2. If `generator_setup_page` fails or the tool is unavailable:
    - **STOP immediately**
    - Respond: "Browser session could not be started. The `playwright-test` MCP server is not running. Start it in VS Code (Copilot Chat → MCP Servers → playwright-test → Start) and re-invoke the agent."
    - **Do NOT proceed to read instructions or generate any code**
 3. If it succeeds, take a `browser_snapshot` to confirm the page loaded
-
 This gate ensures the HARD RULE (browser-first generation) is structurally enforced, not just documented.
-
 ---
 
 ## GENERATION WORKFLOW
 ### File Generation Order (MANDATORY)
-
 | Step | File | Rule |
 |---|---|---|
 | 1 | CSV | Define test data inputs first |
 | 2 | Page Object(s) | Locators + actions + assertions |
 | 3 | Workflow | Business logic — calls page methods |
 | 4 | Spec | Orchestrates workflow + cleanup |
-
 **Always check if file exists before creating — extend, never rewrite.**
 
 ### Step 1 — Read the test plan scenario
 Parse scenario title, steps, and expected outcomes from the user or planner output.
 
 ### Step 2 — Check SF-Basepage FIRST (CRITICAL)
-Before creating any Salesforce action method, read `pages/SF-Basepage/sf-page.ts`.
+Before creating any Salesforce action method, read `pages/SF-Basepage/sf-page.ts`. 
 If the generic action already exists, reuse it. Rules for SF-Basepage are in
 `.github/instructions/page-objects.instructions.md`.
 
@@ -129,7 +122,6 @@ Rules in `.github/instructions/test-data.instructions.md`.
 
 ### Step 8 — Write output files
 Generate only the files this test requires.
-
 | Layer | File Pattern | Rules In |
 |---|---|---|
 | Page Object | `pages/<object>/<object>-<purpose>-page.ts` | `.github/instructions/page-objects.instructions.md` |
@@ -142,7 +134,6 @@ Every generated spec that creates records MUST include:
 - `try/catch/finally` for toast verification + cleanup registration
 - `addLocatorHandler` for duplicate detection and toast overlay in `beforeEach`
 - Cleanup MUST NOT depend on toast verification success
-
 Follow `.github/instructions/spec-files.instructions.md` for the canonical patterns.
 
 ## SCREENSHOT CAPTURE (CRITICAL)
@@ -182,7 +173,7 @@ Verify and strictly enforce EVERY item below after generating any code. If any i
 **Page Object:**
 - [ ] Extends `BasePage`, has `pageName` and `relativeUrl`
 - [ ] Only created if test scenario needs it
-- [ ] SF-Basepage checked first for generic actions
+- [ ] Always check `SF-Basepage` first for any generic actions before implementing them in a new or existing page object.
 - [ ] All locators: `private` getters, `ResilientLocator`, 3 strategies
 - [ ] LWC `c-*` scoping applied where applicable
 - [ ] `exact: true` on ambiguous labels

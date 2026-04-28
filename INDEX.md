@@ -23,6 +23,7 @@ art-of-ai-instructions/
 │   └── manual-test-step-generator.agent.md
 │
 ├── instructions/                      # Auto-loaded instruction files (applyTo patterns)
+│   ├── api-tests.instructions.md
 │   ├── page-objects.instructions.md
 │   ├── workflows.instructions.md
 │   ├── spec-files.instructions.md
@@ -35,11 +36,7 @@ art-of-ai-instructions/
     ├── csv-reader.md
     ├── email-verification-service.md
     ├── impersonation-helper.md
-    ├── jira-xray-service.md
     ├── payload-builder.md
-    ├── salesforce-connection.md
-    ├── salesforce-login-service.md
-    ├── session-manager.md
     ├── session-refresh-middleware.md
     ├── sf-data-factory.md
     └── test-data-generator.md
@@ -71,12 +68,13 @@ These agents consume centralized instructions as their authoritative source of f
 
 | File | Authority Over | Auto-Loads For | Consuming Project Path |
 |---|---|---|---|
-| `instructions/page-objects.instructions.md` | Page Object class structure, ResilientLocator, SF-Basepage reuse, demand-driven creation, locator rules, combobox patterns, save/toast page-level mechanics | `pages/**/*.ts` | `.github/instructions/page-objects.instructions.md` |
-| `instructions/workflows.instructions.md` | Workflow class structure, `this.step()` wrapping, SF-Basepage usage, demand-driven imports, one-workflow-per-scenario, record creation flow orchestration | `workflows/**/*.ts` | `.github/instructions/workflows.instructions.md` |
-| `instructions/spec-files.instructions.md` | Spec file structure, zero-locator rule, CSV data loading, cleanup registration, verification chain | `tests/**/*.spec.ts` | `.github/instructions/spec-files.instructions.md` |
-| `instructions/salesforce-stability.instructions.md` | Wait strategies, Lightning SPA behavior, Shadow DOM, stale elements, dynamic IDs, toast transience, common failure patterns | `tests/**/*.ts` | `.github/instructions/salesforce-stability.instructions.md` |
+| `instructions/api-tests.instructions.md` | API test architecture, PayloadBuilder usage, Composite API patterns, workflow-only assertions | `tests/**/*.ts` | `.github/instructions/api-tests.instructions.md` |
+| `instructions/page-objects.instructions.md` | SF-Basepage reuse, demand-driven page creation, ResilientLocator, locator rules, navigation priority, combobox patterns, assertions, save/toast mechanics | `pages/**/*.ts` | `.github/instructions/page-objects.instructions.md` |
+| `instructions/workflows.instructions.md` | Workflow class structure, `this.testStep()` wrapping, SF-Basepage usage, demand-driven imports, one-workflow-per-scenario, toast verification separation | `workflows/**/*.ts` | `.github/instructions/workflows.instructions.md` |
+| `instructions/spec-files.instructions.md` | Spec file structure, zero-locator rule, CSV data loading, cleanup registration, verification chain, addLocatorHandler rules, timeout rules | `tests/**/*.spec.ts` | `.github/instructions/spec-files.instructions.md` |
+| `instructions/salesforce-stability.instructions.md` | Wait strategies, Lightning SPA behavior, Shadow DOM, stale elements, dynamic IDs, toast transience, common failure patterns | `tests/**/*.ts, pages/**/*.ts, workflows/**/*.ts` | `.github/instructions/salesforce-stability.instructions.md` |
 | `instructions/test-data.instructions.md` | CSV directory structure, file naming, static vs dynamic data, CSV isolation rule | `test-data/**` | `.github/instructions/test-data.instructions.md` |
-| `instructions/helper-utilities.instructions.md` | Index of available helper utilities — read on demand, never all at once | `tests/**/*.ts` | `.github/instructions/helper-utilities.instructions.md` |
+| `instructions/helper-utilities.instructions.md` | Index of available helper utilities — read on demand, utility methods called only in workflows | `tests/**/*.ts, workflows/**/*.ts` | `.github/instructions/helper-utilities.instructions.md` |
 
 ### Utilities — Reference Documentation
 
@@ -89,11 +87,7 @@ These agents consume centralized instructions as their authoritative source of f
 | `utilities/csv-reader.md` | Read static test data from CSV with type-safe mapping |
 | `utilities/email-verification-service.md` | Email verification via Salesforce EmailMessage or inbox providers |
 | `utilities/impersonation-helper.md` | Login as another Salesforce user via Setup → Users |
-| `utilities/jira-xray-service.md` | Jira/Xray integration for test management |
 | `utilities/payload-builder.md` | Type-safe API payloads from JSON templates with dynamic overrides |
-| `utilities/salesforce-connection.md` | Salesforce API connection management |
-| `utilities/salesforce-login-service.md` | Salesforce authentication service |
-| `utilities/session-manager.md` | Browser session management |
 | `utilities/session-refresh-middleware.md` | Auto-recovery from mid-test Salesforce session expiry |
 | `utilities/sf-data-factory.md` | Test data CRUD, Composite API, automatic cleanup (child-before-parent) |
 | `utilities/test-data-generator.md` | Unique/timestamped/random value generation for test isolation |

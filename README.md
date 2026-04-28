@@ -102,12 +102,13 @@ Each concern has exactly one authoritative file. Do not look elsewhere.
 
 | Concern | Authoritative File (centralized) | Consumed Under |
 |---|---|---|
-| Page object rules, locators, assertions | `instructions/page-objects.instructions.md` | `.github/instructions/page-objects.instructions.md` |
-| Workflow rules, `this.step()`, boundaries | `instructions/workflows.instructions.md` | `.github/instructions/workflows.instructions.md` |
+| Page object rules, locators, navigation, assertions | `instructions/page-objects.instructions.md` | `.github/instructions/page-objects.instructions.md` |
+| Workflow rules, `this.testStep()`, boundaries | `instructions/workflows.instructions.md` | `.github/instructions/workflows.instructions.md` |
 | Spec file rules, cleanup, orchestration | `instructions/spec-files.instructions.md` | `.github/instructions/spec-files.instructions.md` |
 | Salesforce timing, stability, failure patterns | `instructions/salesforce-stability.instructions.md` | `.github/instructions/salesforce-stability.instructions.md` |
 | Test data CSV structure and isolation | `instructions/test-data.instructions.md` | `.github/instructions/test-data.instructions.md` |
 | Utility discovery and index | `instructions/helper-utilities.instructions.md` | `.github/instructions/helper-utilities.instructions.md` |
+| API test rules, PayloadBuilder, Composite API | `instructions/api-tests.instructions.md` | `.github/instructions/api-tests.instructions.md` |
 | Agent boundaries and dependencies | `AGENTS.md` | `.github/AGENTS.md` |
 | File and folder discovery map | `INDEX.md` | `.github/INDEX.md` |
 

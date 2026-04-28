@@ -37,7 +37,7 @@ Agents are **lightweight orchestrators**. They define:
 **All framework rules, coding patterns, and architectural constraints live in centralized instruction files** (consumed under `.github/instructions/`). Agents MUST:
 
 1. Follow auto-loaded instruction rules without overriding them
-2. Use `.github/copilot-instructions.md` for project-specific context only
+2. Use `.github/copilot-instructions.md` for project-specific context and instruction discovery
 3. Use `.github/local-override.md` for project-specific exceptions only
 4. Never duplicate centralized instruction content
 
@@ -71,7 +71,7 @@ This section documents their boundaries and instruction dependencies for referen
 | Dependency | Consuming Project Path | Why |
 |---|---|---|
 | `instructions/helper-utilities.instructions.md` | `.github/instructions/helper-utilities.instructions.md` | Identify available utilities for test implementation |
-| `copilot-instructions.md` (local) | `.github/copilot-instructions.md` | Project-specific app names, object list, org context |
+| `copilot-instructions.md` (local) | `.github/copilot-instructions.md` | Project context, instruction bridge, org constants |
 
 #### Output
 

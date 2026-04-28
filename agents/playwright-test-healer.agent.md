@@ -50,7 +50,7 @@ you edit files. Do not duplicate, weaken, or override them.
 
 | File | Auto-Loads For | Owns |
 |---|---|---|
-| `.github/instructions/page-objects.instructions.md` | `pages/**/*.ts` | ResilientLocator, LWC scoping, locator rules, combobox, assertions |
+| `.github/instructions/page-objects.instructions.md` | `pages/**/*.ts` | ResilientLocator, LWC scoping, locator rules, Assertions, Navigation, Combobox|
 | `.github/instructions/workflows.instructions.md` | `workflows/**/*.ts` | `this.testStep()`, scope boundaries, demand-driven imports |
 | `.github/instructions/spec-files.instructions.md` | `tests/**/*.spec.ts` | Zero-locator rule, CSV data, cleanup, verification chain |
 | `.github/instructions/salesforce-stability.instructions.md` | `tests/**/*.ts, pages/**/*.ts, workflows/**/*.ts` | Wait strategies, sync rules, common failure patterns |
