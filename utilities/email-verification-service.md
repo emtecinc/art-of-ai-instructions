@@ -192,5 +192,5 @@ interface InboxEmail {
 - ✅ **Verify sender and receiver** — there should be not be any confusion between sender and receiver
 - ❌ **Don't capture sentAfter after trigger** — may miss the email
 - ❌ **Don't EVER use verifyWithSalesforce and verifyMailosaur in the same test** — use `verify()` instead. Unless the subject of email differs in sent and recieved email. 
-
+- ❌ **Don't use retries as substitute for idle time** — use waitForTimeout or similar to ensure system has processed the email trigger before calling verify
 ---
