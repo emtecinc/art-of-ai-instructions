@@ -37,8 +37,8 @@ These handlers are **boilerplate infrastructure**, not test logic. Copy verbatim
 - Tags MUST be declared ONLY as an array inside the `test()` function. Usage of tags in `test.describe()` or at any other level is STRICTLY FORBIDDEN.
 - The tag array MUST begin with the Jira issue key as the first item (e.g., `@JIRA-101`), followed by relevant test type tags (e.g., `@smoke`, `@regression`).
 - If no Jira issue key is provided for the test:
-  - Retrieve the alphabetic prefix from the `TEST_EXEC_PROJECT_KEY` environment variable
-  - Use it to generate a dummy Jira tag (e.g., `@JIRA-101` or similar format)
+  - Retrieve the alphabetic prefix by reading `TEST_EXEC_PROJECT_KEY` environment variable value
+  - Use it to hardcode a dummy Jira tag (e.g., `@JIRA-101`)
   - ALWAYS include a clear reminder in the generated code for the tester to confirm and replace the dummy key with the correct Jira issue key once the test is generated
 - EVERY test is independently runnable
 
@@ -174,7 +174,7 @@ test.describe('Entity Creation - Scenario Name', () => {
     await dataFactory.teardown();
   });
 
-  // Use the correct Jira key in the tag below. If key is not provided, generate a key using the TEST_EXEC_PROJECT_KEY env variable and include a reminder to update it.
+  // Use the correct Jira key in the tag below. If key is not provided, generate a key reading the TEST_EXEC_PROJECT_KEY env variable and include a reminder to update it.
   test('should create entity with required fields', { 
       tag: ['@JIRA-101', '@smoke'] 
     }, async ({ page }) => {

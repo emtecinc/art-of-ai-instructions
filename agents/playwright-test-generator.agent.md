@@ -191,7 +191,7 @@ Verify and strictly enforce EVERY item below after generating any code. If any i
 - [ ] CSV in `test-data/<object>/`
 - [ ] `try/catch/finally` for toast + cleanup — ALL records (primary + inline) in `finally`
 - [ ] `addLocatorHandler` with `{ noWaitAfter: true }` in `beforeEach`
-- [ ] Apply tags correctly: include the relevant Jira issue key and use the proper type tags as defined in `spec-files.instructions.md`.
+- [ ] Apply tags correctly: Use the Jira issue key prefix read from environment variable value and use the proper type tags as defined in `spec-files.instructions.md`.
 - [ ] Inline records use `COMPONENT_OBJECT_MAP` for `getRecordIdByField` — no hardcoded object/field names
 - [ ] Redirect records use `waitAndRegisterRecordFromUrl(page, name)` — never `registerRecordFromUrl` directly
 ## Perform a complete self-review against EACH-and-EVERY `MANDATORY COMPLIANCE`, `checklist`, `CRITICAL` rules or guidelines available in the instructions before generating any code. Only after every item is fully satisfied may you proceed to next task. Any violation of this rule is NOT permitted.
