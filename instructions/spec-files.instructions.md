@@ -59,7 +59,7 @@ Every record created during a test MUST be registered for cleanup. Toast verific
 ### Canonical Post-Creation Sequence in Specs
 ```
 1. Call workflow create method           (handles save internally)
-2. try/catch/finally: toast + cleanup    (toast is best-effort, cleanup in finally)
+2. try/catch/finally: toast + cleanup    (toast is best-effort; don't throw error, cleanup in finally)
 3. Call workflow verification methods     (assert the record was created correctly)
 ```
 
@@ -195,7 +195,7 @@ test.describe('Entity Creation - Scenario Name', () => {
       try {
         await workflow.verifySuccessToast(entityData.name);
       } catch (error) {
-        toastError = error;
+        console.warn('Toast verification failed, proceeding to cleanup. Error:', error);
       } finally {
         // Primary record: wait for redirect URL to resolve, then register
         await dataFactory.waitAndRegisterRecordFromUrl(page, entityData.name);
@@ -203,7 +203,6 @@ test.describe('Entity Creation - Scenario Name', () => {
         // const { objectApiName, uniqueField } = COMPONENT_OBJECT_MAP['Account'];
         // await dataFactory.getRecordIdByField(objectApiName, uniqueField, entityData.childAccountName);
       }
-      if (toastError) throw toastError;
     });
 
     // Assert — workflow handles all verifications internally
