@@ -212,7 +212,7 @@ async selectComboboxOption(comboboxName: string, optionText: string): Promise<vo
 ```
 
 ## Anti-Patterns
-- Never call methods directly on a `ResilientLocator` instance — always call `.getLocator()` first: `resilientLocator.getLocator().click()`
+- Never call methods directly on a `ResilientLocator` instance — always call `.getLocator()` first: `resilientLocator.getLocator().click()` or `resilientLocator.getVisibleLocator(timeout).click()`
 - Never cache locators across page transitions — use getters
 - Never use `pressSequentially` — use `fill()`
 - Never use `waitForTimeout()` — read `salesforce-stability.instructions.md` for more understanding

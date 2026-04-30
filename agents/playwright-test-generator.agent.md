@@ -21,11 +21,9 @@ tools:
   - playwright-test/browser_verify_list_visible
   - playwright-test/browser_verify_text_visible
   - playwright-test/browser_verify_value
-  - playwright-test/browser_wait_for
   - playwright-test/generator_read_log
   - playwright-test/generator_setup_page
   - playwright-test/generator_write_test
-model: Claude Sonnet 4.6
 mcp-servers:
   playwright-test:
     type: stdio
@@ -118,6 +116,7 @@ Rules in `.github/instructions/test-data.instructions.md`.
 ### Step 7 — Execute scenario in browser
 - Call `generator_setup_page` (navigate to home via `BASE_URL` env var)
 - Execute each test step using `browser_*` tools
+- ALWAYS use refs from `browser_snapshot` to interact with elements, use `browser_evaluate` as a LAST RESORT.
 - Call `generator_read_log` after execution to check for errors
 
 ### Step 8 — Write output files
@@ -146,7 +145,7 @@ Use `captureScreenshot(page: Page, testInfo: TestInfo, name: string)` from `play
 ## ANTI-PATTERNS — ZERO TOLERANCE
 | Anti-Pattern | Correct Pattern |
 |---|---|
-| `resilientLocator.click()` | `resilientLocator.getLocator().click()` |
+| `resilientLocator.click()` | `resilientLocator.getLocator().click()` or `resilientLocator.getVisibleLocator(timeout).click()` |
 | `waitForTimeout(2000)` | `expect(locator).toBeVisible()` |
 | Hardcoded data in spec | CSV + `TestDataGenerator` |
 | `expect()` in Workflow or Spec | `expect()` in Page Object only |

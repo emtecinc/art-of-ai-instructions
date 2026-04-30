@@ -20,7 +20,6 @@ tools:
   - playwright-test/browser_snapshot
   - playwright-test/browser_take_screenshot
   - playwright-test/browser_type
-  - playwright-test/browser_wait_for
   - playwright-test/planner_setup_page
   - playwright-test/planner_save_plan
 mcp-servers:
@@ -55,6 +54,7 @@ auto-loaded via path-specific instructions in `.github/instructions/`. The proje
 - Use 'App Launcher' or 'Global Actions' to access apps and features, NEVER use direct URLs for navigation
 - Use `browser_snapshot` to map all interactive elements
 - Navigate all flows using `browser_*` tools
+- ALWAYS use refs from `browser_snapshot` to interact with elements, use `browser_evaluate` as a LAST RESORT.
 - Do NOT take screenshots unless absolutely needed
 - **URL Navigation:** If the user provides a URL, save it for use in test cases
 
