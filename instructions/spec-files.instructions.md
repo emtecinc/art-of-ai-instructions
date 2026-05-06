@@ -88,7 +88,7 @@ const TEST_DATA = {
 
 ## SFDataFactory Cleanup Rules
 - **Every record created during a test MUST be registered for cleanup** — no orphaned records
-- **try/catch/finally** for toast verification + cleanup registration — ALL records (primary + inline) in `finally` block
+- **try/catch/finally** for toast verification + cleanup registration — ALL records (inline + primary) in `finally` block
 - **Redirected record** → `await dataFactory.waitAndRegisterRecordFromUrl(page, name)` — waits for full URL, then registers
 - **Non-redirect record (inline, modal, quick action, embedded)** → destructure `COMPONENT_OBJECT_MAP` for `objectApiName` and `uniqueField`, then call `await dataFactory.getRecordIdByField(objectApiName, uniqueField, value)` — never hardcode object/field names
 - **Inline records in `finally`** — when a workflow creates inline records (child accounts, parent accounts, etc.), register them ALL in the same `finally` block as the primary record
@@ -197,11 +197,11 @@ test.describe('Entity Creation - Scenario Name', () => {
       } catch (error) {
         console.warn('Toast verification failed, proceeding to cleanup. Error:', error);
       } finally {
+        // Inline-created records: use COMPONENT_OBJECT_MAP — never hardcode objectApiName/uniqueField
+        const { objectApiName, uniqueField } = COMPONENT_OBJECT_MAP['Entity'];
+        await dataFactory.getRecordIdByField(objectApiName, uniqueField, entityData.childAccountName);
         // Primary record: wait for redirect URL to resolve, then register
         await dataFactory.waitAndRegisterRecordFromUrl(page, entityData.name);
-        // Inline-created records: use COMPONENT_OBJECT_MAP — never hardcode objectApiName/uniqueField
-        // const { objectApiName, uniqueField } = COMPONENT_OBJECT_MAP['Account'];
-        // await dataFactory.getRecordIdByField(objectApiName, uniqueField, entityData.childAccountName);
       }
     });
 
