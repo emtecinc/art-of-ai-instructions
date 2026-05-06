@@ -62,9 +62,6 @@ Do not duplicate, weaken, or override them.
 | `.github/instructions/helper-utilities.instructions.md` | `tests/**/*.ts`, `workflows/**/*.ts` | Utility index — read the specific utility file on demand |
 | `.github/instructions/api-tests.instructions.md` | `tests/**/*.ts` | API-only test rules — no UI, no page objects |
 
-Utility reference docs: `.github/utilities/<name>.md` — read only the file you need
-(e.g. `.github/utilities/sf-data-factory.md`).
-
 When an instruction file auto-loads, follow its rules exactly. They take absolute precedence.
 ---
 
@@ -114,10 +111,13 @@ One CSV per spec, in `test-data/<object>/<object>-<scenario>.csv`. Never reuse a
 Rules in `.github/instructions/test-data.instructions.md`.
 
 ### Step 7 — Execute scenario in browser
-- Call `generator_setup_page` (navigate to home via `BASE_URL` env var)
-- Execute each test step using `browser_*` tools
-- ALWAYS use refs from `browser_snapshot` to interact with elements, use `browser_evaluate` as a LAST RESORT.
-- Call `generator_read_log` after execution to check for errors
+**Guidelines for browser execution:**
+- [ ] Execute the PREFLIGHT with the correct `project` and `seedFile` inputs
+- [ ] When using `browser_navigate` use `url` & `intent` as input
+- [ ] ALWAYS use `browser_snapshot` whenever there is **any** change to the page (even minor) to obtain the latest and correct references for element interaction
+- [ ] ALWAYS prefer `browser_click` with `ref` & `intent` as input when accessing or interacting with any element on the page
+- [ ] Call `generator_read_log` after execution to check for errors
+- [ ] NEVER use `browser_evaluate` unless it is absolutely necessary. Exhaust all other appropriate tools first
 
 ### Step 8 — Write output files
 Generate only the files this test requires.
@@ -169,6 +169,7 @@ Use `captureScreenshot(page: Page, testInfo: TestInfo, name: string)` from `play
 ---
 ## POST-GENERATION CHECKLIST — MANDATORY COMPLIANCE
 Verify and strictly enforce EVERY item below after generating any code. If any item is not met, revise the generated code until full compliance is achieved.
+
 **Page Object:**
 - [ ] Extends `BasePage`, has `pageName` and `relativeUrl`
 - [ ] Only created if test scenario needs it
