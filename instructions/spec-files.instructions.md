@@ -150,16 +150,17 @@ test.describe('Entity Creation - Scenario Name', () => {
 
     // 4. Register duplicate detection handler (MANDATORY for record-creating tests)
     await page.addLocatorHandler(
-      page.getByRole('dialog', { name: 'Similar Records Exist' }),
-      async () => {
-        const closeButtons = page.getByRole('dialog', { name: 'Similar Records Exist' })
-          .getByRole('button', { name: /Close/i });
-        const count = await closeButtons.count();
-        for (let i = 0; i < count; i++) {
-          await closeButtons.nth(i).click({ timeout: 5_000 }).catch(() => {});
+    page.locator('.slds-popover_warning[role="dialog"]').first(), async () => { const dialogs = page.locator('.slds-popover_warning[role="dialog"]');
+        while (await dialogs.count() > 0) {
+          const dialog = dialogs.first();
+          const closeButton = dialog.locator('button[title="Close error dialog"]');
+          if (await closeButton.isVisible().catch(() => false)) {
+              await page.waitForTimeout(500);
+              await closeButton.click({ force: true, timeout: 5000 }).catch(() => {});
+          }
+          await dialog.waitFor({ state: 'hidden', timeout: 5000 }).catch(() => {});
         }
-      },
-      { noWaitAfter: true }
+      },{ noWaitAfter: true }
     );
 
     // 5. Register toast auto-dismiss handler (MANDATORY — prevents overlay blocking)
@@ -189,7 +190,7 @@ test.describe('Entity Creation - Scenario Name', () => {
     });
 
     // Toast verification + cleanup — try/catch/finally guarantees cleanup runs
-    // ALL records (primary + inline) registered in finally — never in separate steps
+    // ALL records (inline + primary) registered in finally — never in separate steps
     await test.step('Verify toast and register cleanup', async () => {
       let toastError: unknown;
       try {
