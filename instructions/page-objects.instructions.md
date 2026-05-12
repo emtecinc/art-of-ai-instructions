@@ -157,14 +157,24 @@ public async fillAccountName(name: string): Promise<void> {
 ### Save/Create Methods Must Wait for Completion
 Save/create methods MUST:
 1. Click the save/create button
-2. Wait for spinner to clear
+2. Wait for spinner to clear and form/modal/dialog to close if any
 
 Toast verification is a **separate page method** (`verifySuccessToast`) — called independently by the workflow. See `workflows.instructions.md` for complete understanding.
 ```typescript
 async clickSave(): Promise<void> {
   try {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        await this.saveButton.getLocator().click();
+        await this['page'].locator('.slds-spinner').waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {});
+        await this['page'].getByRole('dialog', { name: 'Name', exact: true }).waitFor({ state: 'hidden', timeout: 10000 });
+        return;
+      } catch { await this.page.waitForTimeout(3333); /* Retry after wait */ }
+    }
     await this.saveButton.getLocator().click();
     await this['page'].locator('.slds-spinner').waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {});
+    await this['page'].getByRole('dialog', { name: 'Name', exact: true }).waitFor({ state: 'hidden', timeout: 10000 });
+
   } catch (error) {
     console.error('Failed to click Save button');
     await this.captureScreenshot(this.page, test.info(), 'click-save-failure');
